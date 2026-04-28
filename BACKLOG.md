@@ -35,7 +35,7 @@ Tags suggested: `[Phase 2]` `[Phase 3]` `[Phase 4]` `[QoL]` `[Bug]` `[Idea]`
 
 ## Quality of life / small ideas
 
-- _(empty)_
+- **[Step 5]** Timezone-aware scheduling — brief fires at 6am local clock wherever Malachi is. Cloud Routine must be configured to fire at the right local time, or read a timezone setting from config and adjust. Confirmed intent: 6am Central stays 6am when traveling to Pacific — not UTC-anchored.
 
 ## Open / unsorted
 

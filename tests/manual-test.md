@@ -1,11 +1,12 @@
-# Step 1 Manual Test Checklist
+# Manual Test Checklist
 
-Run through these checks to confirm the Step 1 foundation is complete.
-Mark each item with [x] when verified.
+Mark each item with `[x]` when verified.
 
 ---
 
-## 1. Config files exist and parse as valid JSON
+## Step 1 — Foundation
+
+### 1. Config files exist and parse as valid JSON
 
 ```bash
 node -e "require('./config/routine.json')"
@@ -25,7 +26,7 @@ node -e "require('./state/reading-progress.json')"
 - [ ] `state/idea-rotation.json` — exists, parses without error
 - [ ] `state/reading-progress.json` — exists, parses without error
 
-## 2. TypeScript compiles without errors
+### 2. TypeScript compiles without errors
 
 ```bash
 npm install
@@ -33,34 +34,139 @@ npm run typecheck
 ```
 
 - [ ] `npm install` completes with no errors
-- [ ] `npm run typecheck` exits with no errors (note: no .ts files yet — this is expected to pass cleanly)
+- [ ] `npm run typecheck` exits with no errors
 
-## 3. .gitignore is correct
+### 3. .gitignore is correct
 
 - [ ] `node_modules/` is listed
 - [ ] `.env` is listed
 - [ ] Confirm `.env` does NOT appear in `git status` after running `npm install`
 
-## 4. Repo pushes to origin/main successfully
-
-```bash
-git add .
-git status   # verify .env is NOT staged
-git commit -m "feat: Step 1 scaffolding — config, state, and project setup"
-git push origin main
-```
+### 4. Repo pushes to origin/main successfully
 
 - [ ] `.env` is absent from staged files
 - [ ] Push succeeds with no errors
 
-## 5. BUILD_LOG.md has at least one entry
+### 5. BUILD_LOG.md has at least one entry
 
 - [ ] `BUILD_LOG.md` exists and contains a dated entry
 
-## 6. README.md describes the project
+### 6. README.md describes the project
 
 - [ ] `README.md` exists and gives a reader enough context to understand what this repo is
 
 ---
 
-All six checks passing = Step 1 complete. Proceed to Step 2.
+## Step 2 — Capture + Routing
+
+All Step 2 tests must be run in a real interactive terminal — the script uses
+`readline` prompts which do not work cleanly with piped stdin.
+
+### Setup
+
+- [ ] `npm install` succeeds (chrono-node should already be in `dependencies`)
+- [ ] `npm run typecheck` exits clean
+- [ ] `config/flags.json` has `DRY_RUN: true` and `IDEA_BRAIN_DOC_ID` set
+
+### Classification — confirm the best-guess destination for each input
+
+For each input below, run:
+```bash
+npx tsx scripts/capture.ts "<input>"
+```
+and verify the "Best guess:" line. Press `q` to exit without writing.
+
+- [ ] `"Hayden has a job interview Tuesday"` → Prayer roster
+- [ ] `"Pray for Hayden's job search"` → Prayer roster
+- [ ] `"Pray for Mom's surgery Thursday"` → Prayer roster
+- [ ] `"Pray for Coach Davis on Friday"` → Prayer roster
+- [ ] `"Gym tomorrow at 9am"` → Calendar
+- [ ] `"Sunday service every week Tier 1"` → Routine — anchor
+- [ ] `"Memorize Philippians 4:13 this week"` → Routine — practice goal
+- [ ] `"Buy groceries"` → Tasks
+- [ ] `"What if I started a podcast about faith"` → Idea Brain
+
+### Manual override
+
+- [ ] On any classified input, pressing `n` shows a numbered destination list
+- [ ] Picking a number routes to that destination's flow
+- [ ] Pressing `q` from the destination list exits cleanly
+
+### Prayer roster — full flow (DRY_RUN on)
+
+- [ ] `"Hayden has a job interview Tuesday"` → Stage 1 confirms; situation guess is shown; entry preview shows `type: "date_anchored"`, `date: "2026-04-28"`, name reuses `"Hayden"`; DRY RUN notice prints
+- [ ] `"Pray for Hayden's job search"` → entry preview shows `type: "ongoing"` (no date field); DRY RUN notice prints
+- [ ] `"Pray for Coach Davis on Friday"` → script asks to add new person, prompts for relation and situation, then shows formatted `date_anchored` entry
+- [ ] `"pray for Hayden"` (no situation, no date) → prompts "add specific situation? [y/n]"; entering `n` exits; entering `y` then a situation produces an `ongoing` entry
+
+### Calendar — full flow (DRY_RUN on, stub fires)
+
+- [ ] `"Gym tomorrow at 9am"` → Tier 2 default; Stage 2 shows payload with correct date, time `09:00`; `[STUB] connectors/calendar.ts → createCalendarEvent` prints with the payload
+- [ ] `"Workout tomorrow at 9am Tier 1"` → Tier 1 picked up from input
+
+### Tasks — full flow (DRY_RUN on, stub fires)
+
+- [ ] `"Buy groceries"` → Stage 2 shows payload with `dueDate: null`; `[STUB] connectors/tasks.ts → createTask` prints
+
+### Idea Brain — full flow (DRY_RUN on, stub fires)
+
+- [ ] `"What if I started a podcast about faith"` → Stage 2 shows `{ docId, line }` with line formatted as `- YYYY-MM-DD — what if I started a podcast about faith`; `[STUB] connectors/drive.ts → appendToDoc` prints
+
+### Routine writes — anchor + practice goal (real local writes when DRY_RUN off)
+
+These tests run twice: once with `DRY_RUN=true` (verify nothing changes), once with `DRY_RUN=false` (verify file is updated).
+
+- [ ] `DRY_RUN=true npx tsx scripts/capture.ts "Sunday service every week Tier 1"` → prints DRY RUN notice; `routine.json` is unchanged
+- [ ] `DRY_RUN=false npx tsx scripts/capture.ts "Sunday service every week Tier 1"` → `routine.json` now has a new entry in `anchors[]` matching the previewed JSON
+
+### Prayer roster — real local write (DRY_RUN off)
+
+- [ ] `DRY_RUN=false npx tsx scripts/capture.ts "Hayden has a job interview Tuesday"` (and confirm at every prompt) → `config/prayer-roster.json` has a new entry appended; original 9 entries are unchanged
+
+### Date parsing edge cases
+
+- [ ] `"Gym tomorrow at 9am"` → date resolves to today + 1, time `09:00`
+- [ ] `"Lunch next Friday"` → date resolves to a Friday in the next week
+- [ ] `"Coffee at 3pm"` → date resolves to today (since no day given)
+
+### DRY_RUN gate (with the value left at default `true` in `.env`)
+
+- [ ] After every test above run with default `.env`: every JSON config file's contents are unchanged from before the test run
+
+---
+
+## Step 3 — Routine + Plan Generation
+
+### Setup
+- [ ] `npm run typecheck` passes
+- [ ] `state/brief-payload.json` is listed in `.gitignore`
+
+### Basic run
+- [ ] `npx tsx scripts/prep.ts` exits with one-line confirmation
+- [ ] `state/brief-payload.json` exists and parses as valid JSON
+- [ ] `generated_at`, `date`, `day_of_week`, and `timezone` are all present and correct
+
+### Bible readings
+- [ ] `proverbs` = `"Proverbs {day-of-month}"` (e.g. `"Proverbs 28"` on April 28)
+- [ ] `psalms` = a range covering 5 psalms for today (e.g. `"Psalms 136–140"` on April 28)
+- [ ] `gospels.reading` = `"Mark 5"` (matches `state/reading-progress.json`)
+- [ ] `isaiah.reading` = `"Isaiah 10"` (matches `state/reading-progress.json`)
+- [ ] `gospels.days_until_end` = 11 (Mark 16 − Mark 5)
+- [ ] `isaiah.days_until_end` = 56 (Isaiah 66 − Isaiah 10)
+
+### Prayer roster
+- [ ] `ongoing_rotation` has exactly 3 entries
+- [ ] All 3 have `type: "ongoing"` in the source file
+- [ ] `date_anchored` is empty (no entries with today's date in the roster)
+- [ ] Manually add a `date_anchored` entry with today's date to `prayer-roster.json`, re-run — it appears in `date_anchored[]` (then revert the change)
+
+### Practice goals
+- [ ] `practice_goals` is `[]` (routine.json currently empty)
+- [ ] Manually add a goal to `routine.json`, re-run — it appears in the payload (then revert)
+
+### Idempotency
+- [ ] Running `npx tsx scripts/prep.ts` twice in a row produces the same payload (apart from `generated_at` timestamp)
+
+### No side effects
+- [ ] `config/prayer-roster.json` is unchanged after any run
+- [ ] `state/reading-progress.json` is unchanged after any run (progress never advances in prep.ts)
