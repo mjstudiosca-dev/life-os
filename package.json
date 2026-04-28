@@ -1,0 +1,14 @@
+{
+  "name": "life-os",
+  "version": "0.1.0",
+  "description": "Personal Life OS — daily morning brief and evening recap",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}

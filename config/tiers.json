@@ -1,0 +1,25 @@
+{
+  "tiers": [
+    {
+      "id": 1,
+      "label": "Anchor",
+      "description": "Locked commitments the system never moves. Classes, work shifts, Sunday service, fixed recurring obligations.",
+      "movable": false,
+      "system_behavior": "Display only. Never suggest moving or skipping."
+    },
+    {
+      "id": 2,
+      "label": "Commitment",
+      "description": "Should happen but timing is flexible. Workouts, study blocks, practice goals.",
+      "movable": true,
+      "system_behavior": "Surface in brief as scheduled. Flag if at risk of being skipped."
+    },
+    {
+      "id": 3,
+      "label": "Intention",
+      "description": "Optional enrichment. Idea exploration, deep work sessions, creative projects.",
+      "movable": true,
+      "system_behavior": "Surface as a menu of options, not requirements. Never flag as missed."
+    }
+  ]
+}

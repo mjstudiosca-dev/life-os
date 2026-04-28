@@ -1,0 +1,4 @@
+{
+  "_comment": "Safe default values for feature flags. At runtime, scripts read DRY_RUN from .env first, falling back to this file. Set DRY_RUN=false in .env only when you are ready to allow real writes to Gmail, Calendar, and Tasks.",
+  "DRY_RUN": true
+}
