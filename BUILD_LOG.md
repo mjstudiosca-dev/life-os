@@ -135,3 +135,158 @@ helper that finds the soonest upcoming day matching the recurrence pattern.
 `readline/promises` rejects later prompts when stdin is piped (lines run out,
 EOF closes the interface). Real interactive use never hits this; piped tests
 do. We treat it as a clean exit so testing scripts don't appear to crash.
+
+---
+
+## 2026-04-29 — Step 4: Morning Brief
+
+**Decision: Cloud Routine over standalone TypeScript script (Option A)**
+The brief is composed inside a remote Claude Code session, not a Node script
+calling Google APIs directly. The routine clones the repo each run, executes
+`prep.ts` via Bash, then uses MCP tools (Calendar, Drive, Gmail) to assemble
+and draft the email. Reasons: (1) MCP infrastructure already exists, no OAuth
+plumbing to maintain; (2) one place handles scheduling, composition, and
+sending; (3) prompt lives in the repo so changes ship with `git push`.
+
+**Decision: Routine prompt is a one-liner pointing to the file**
+The routine's embedded prompt is:
+`Read 'routines/morning-brief.md' from the repo root and follow those
+instructions exactly.`
+The full 9-step instructions live in `routines/morning-brief.md`. Reason: lets
+Malachi edit the brief format/behavior with a normal git workflow — no
+touching the routine config on claude.ai. Routine clones fresh each run so
+edits take effect immediately.
+
+**Decision: Tasks step is optional**
+Step 4 of the routine prompt says: "If the Tasks MCP tool is not available,
+skip this step and omit the Tasks section." Reason: Google Tasks doesn't have
+an official Anthropic MCP connector yet — Malachi would need to build a custom
+MCP server. Rather than block the brief on that, the section gracefully drops
+when the tool is missing.
+
+**Decision: Hours open = 16 minus all calendar events (Tier 1 + Tier 2)**
+Resolved Q4 in the spec. Reason: Tier 2 commitments aren't "locked" but they
+do consume time the user has committed to something. Tier 3 is purely
+optional, so it doesn't count against open hours.
+
+**Decision: Ideas — up to 3 total, time-anchored first**
+Resolved Q2 in the spec. Time-anchored entries (this week / by Friday /
+explicit dates / "soon" / today's date) always surface first. Remaining slots
+filled with rotating picks, varied day-to-day. Hard cap of 3.
+
+**Decision: Tasks get their own section, not mixed into tiers**
+Resolved Q3. Reason: tasks have no tier assigned at capture (only Calendar
+events do). Inferring tier from text was rejected as too unreliable. Own
+section is honest about what they are.
+
+**Decision: GitHub Integration must be connected via claude.ai web UI**
+Initial create attempts via RemoteTrigger API set the git URL to
+`https://github.com/...` or `https://ssh.github.com/...` — runs failed to
+start or cloned an empty repo. Root cause: the routine UI uses a
+GitHub-integrated repo picker (claude.ai/settings/connectors → GitHub
+Integration → Connect). Without that connection, no git URL set via API
+works. Once connected, the picker shows the repo, the routine attaches it
+properly, and runs succeed.
+
+**Decision: brief-payload.json is gitignored**
+Already established in Step 3 but reaffirmed: it's a per-run build artifact,
+not state worth versioning. The Cloud Routine regenerates it via `prep.ts`
+every morning.
+
+**Decision: First successful run shape (2026-04-29 dry run)**
+5 Tier 2 events, 0 Tier 1, 0 Tier 3, 3 ongoing prayer names, Tasks section
+omitted (no MCP), Idea Brain empty (no entries yet). Gmail draft created at
+mjstudiosca@gmail.com under DRY_RUN=true. Confirmed format reads correctly.
+
+---
+
+## 2026-04-29 — Step 4.5: Idea Brain → Supabase
+
+**Decision: Idea Brain moves from Google Doc → Supabase**
+Reverses PROJECT.md §2 "No DB" for the Idea Brain only. Reasons:
+- Need real relational features: many-to-many categories, cross-links between
+  ideas, per-idea surface history (`surface_count`, `last_surfaced_at`,
+  `surface_log` audit table).
+- Need fast filtered queries that distinguish time-anchored, scheduled, and
+  rotating ideas without reading the whole archive into context.
+- The four action options (Act today / Schedule / Push / Keep quiet) need
+  durable state on each row — a Doc can't model that cleanly.
+
+**Decision: Supabase scope is limited to the Idea Brain**
+All other state (prayer roster, bible plan, reading progress, routine config,
+flags) stays as JSON config + JSON state + markdown logs. The DB rule only
+relaxes for the Idea Brain.
+
+**Decision: Schema (verified against the live DB via Supabase MCP)**
+- `ideas` (id **int4 PK**, title, body, status, scheduled_for, due_date,
+  priority, last_surfaced_at, surface_count, is_time_anchored, source,
+  external_ref, created_at, updated_at)
+- `categories` (id int4 PK, name unique, description)
+- `idea_categories` (idea_id int4, category_id int4) — composite PK
+- `idea_connections` (id int4 PK, from_idea_id, to_idea_id, note)
+- `surface_log` (id int4 PK, idea_id, surfaced_at, context)
+
+`ideas.id` is **integer**, not UUID. The original migration prompt suggested
+`ARRAY['...']::uuid[]` — corrected to `ARRAY[1, 2, 3]::int[]` in
+`routines/morning-brief.md`. The seven seeded categories: `PERSONAL`,
+`AI BIZ`, `TORCH`, `MESSAGE`, `TODO`, `MINISTRY`, `NEXT PROJECT`.
+
+**Verified state at migration time (2026-04-29):**
+- 14 ideas (not 13), all `status = 'active'`, mostly `source = 'reminders_migration'`
+- 17 idea-category links, 11 idea connections, 0 surface_log rows
+- One idea (id 6, "Migrate app exercises to Google Sheet") has
+  `due_date = 2026-04-27` — already past today (2026-05-02). Query A excludes
+  past-due, so it won't surface as time-anchored. Open question: should
+  past-due be surfaced as overdue? Logged as a Step 5 question.
+
+**Decision: Two new env vars**
+`IDEA_BRAIN_SUPABASE_URL`, `IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY`. Both
+gitignored via `.env`. Service-role key used because all writes are first-party
+(personal system, no end users). When the Cloud Routine needs them, they're
+attached via the Supabase MCP connector — the routine never sees the raw key.
+
+**Decision: Cloud Routine queries Supabase via MCP, not HTTP**
+The morning-brief routine uses the Supabase MCP `execute_sql` tool. Two
+queries: time-anchored first (always surface), then a `RANDOM() LIMIT 3`
+rotating pick filtered to ideas not surfaced in the last 2 days. After
+composing the brief, the routine updates `last_surfaced_at`, increments
+`surface_count`, and inserts into `surface_log` for each surfaced idea.
+
+**Decision: Local capture uses HTTP, not @supabase/supabase-js**
+`scripts/capture.ts` writes via `fetch()` to PostgREST (`/rest/v1/ideas`).
+Reason: avoids adding a dependency for a single insert call. Keeps the
+package surface minimal as PROJECT.md requires.
+
+**Decision: Capture splits input into title + body heuristically**
+First sentence (or first ~80 chars at a word boundary) → `title`; the rest →
+`body`. Categories aren't assigned by the script — set them in Supabase Studio
+or the iOS Shortcut path. Reason: tagging requires the full category list,
+which doesn't belong inline in a quick capture flow.
+
+**Decision: `is_time_anchored` pre-flag in capture**
+The script flips `is_time_anchored = true` when input contains "this week",
+"by [day]", "soon", "upcoming", "today", "tomorrow", or "tonight". Cheap
+pattern match. The DB column is the source of truth — the iOS Shortcut /
+Studio can override.
+
+**Decision: 13 existing ideas migrated outside this conversation**
+Migration was done in another tool. Schema in this build_log mirrors what's in
+the DB; if drift appears, the DB wins. To verify, run a Supabase MCP
+`list_tables` against the `idea-brain` project.
+
+**Decision: Old Google Doc retained as one-way archive**
+We don't read from it anymore (`flags.json` no longer carries
+`IDEA_BRAIN_DOC_ID`; capture no longer appends to it). The Doc is left in
+place rather than deleted — read-only fallback if Supabase is ever
+unavailable. iOS Shortcut update (Doc → Supabase POST) is on Malachi's side.
+
+**Decision: Action handlers (Act today / Schedule / Push / Keep quiet)
+deferred to Step 5 / evening recap**
+The morning brief renders the four options as literal text under each idea so
+Malachi can reply via email or pick during the evening recap. No handler is
+wired in Step 4.5 — the brief simply surfaces.
+
+**Decision: Tasks MCP work paused**
+Was mid-setup (OAuth credentials being recreated, Path A vs Path B
+unresolved). Paused to ship the Idea Brain migration first since it
+unblocks today's brief. Tasks MCP picks back up after this lands.

@@ -66,7 +66,8 @@ All Step 2 tests must be run in a real interactive terminal — the script uses
 
 - [ ] `npm install` succeeds (chrono-node should already be in `dependencies`)
 - [ ] `npm run typecheck` exits clean
-- [ ] `config/flags.json` has `DRY_RUN: true` and `IDEA_BRAIN_DOC_ID` set
+- [ ] `config/flags.json` has `DRY_RUN: true`
+- [ ] `.env` has `IDEA_BRAIN_SUPABASE_URL` and `IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY` set (gitignored)
 
 ### Classification — confirm the best-guess destination for each input
 
@@ -108,9 +109,12 @@ and verify the "Best guess:" line. Press `q` to exit without writing.
 
 - [ ] `"Buy groceries"` → Stage 2 shows payload with `dueDate: null`; `[STUB] connectors/tasks.ts → createTask` prints
 
-### Idea Brain — full flow (DRY_RUN on, stub fires)
+### Idea Brain — full flow (DRY_RUN on)
 
-- [ ] `"What if I started a podcast about faith"` → Stage 2 shows `{ docId, line }` with line formatted as `- YYYY-MM-DD — what if I started a podcast about faith`; `[STUB] connectors/drive.ts → appendToDoc` prints
+- [ ] `"What if I started a podcast about faith"` → Stage 2 shows `{ title, body, status, is_time_anchored, source }`; DRY RUN notice prints (no real Supabase write)
+- [ ] `"What if I memorized one verse this week"` → `is_time_anchored: true` due to "this week"
+- [ ] `"Buy groceries... wait, that's a task"` → classified as Tasks, not Idea Brain (verifies classification still works)
+- [ ] With `DRY_RUN=false` and valid Supabase creds in `.env`: same input creates a row in the `ideas` table — verify in Supabase Studio
 
 ### Routine writes — anchor + practice goal (real local writes when DRY_RUN off)
 

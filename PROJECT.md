@@ -71,14 +71,14 @@ These have been made. Don't re-debate without real reason.
 ### Identity & cadence
 - **Morning brief:** delivered via email at 6:00 AM
 - **Evening recap:** delivered at 8:00 PM
-- **Capture surface:** iOS Shortcut → appends to a Google Doc (the "Idea Brain")
+- **Capture surface:** iOS Shortcut → POSTs to Supabase `ideas` table (the "Idea Brain"). Local fallback: `scripts/capture.ts` writes to the same table.
 
 ### Stack
 - **Language:** TypeScript on Node 20+
-- **Storage:** GitHub repo (this repo)
+- **Storage:** GitHub repo for code/config; Supabase (`idea-brain` project, ID `nifkdviqtwokroxvkxzw`) for the Idea Brain only
 - **Scheduling:** Cloud Routines in Claude Code (works when laptop is off, confirmed available on Pro plan)
-- **Integrations:** Gmail, Google Calendar, Google Drive (for Doc reading), Google Tasks — wired in via MCP connectors as each step needs them
-- **No DB.** JSON config, JSON state, markdown logs.
+- **Integrations:** Gmail, Google Calendar, Google Tasks (custom MCP server), Supabase (for Idea Brain) — wired in via MCP connectors as each step needs them
+- **DB scope:** Supabase is **only** for the Idea Brain (rich relations: categories, connections, surface tracking). Everything else stays as JSON config + JSON state + markdown logs.
 
 ### Priority tiers
 
@@ -135,16 +135,33 @@ Examples in scope:
 
 ### Idea surfacing logic
 
-- **Layer 1 — Time-anchored** (always surface): date hooks, deadlines, "this week," tied to events
-- **Layer 2 — Rotating surprise:** 2–3 ideas pulled from the rest of the brain, weighted for variety, 14-day rotation window
+The Idea Brain is a Supabase database (`idea-brain` project, ID `nifkdviqtwokroxvkxzw`). Schema (verified against the live DB on 2026-04-29):
 
-Action options on each surfaced idea:
-1. Act on it today → creates task or time block
-2. Schedule it → pick a specific day
-3. Push to next week's review
-4. Keep in brain quietly (won't rotate for ~2 weeks)
+- **`ideas`**: `id` (int4 PK), `title` (text), `body` (text, nullable), `status` (text, default `'active'`), `scheduled_for` (date, nullable), `due_date` (date, nullable), `priority` (text, nullable), `last_surfaced_at` (timestamptz, nullable), `surface_count` (int4, default 0), `is_time_anchored` (bool, default false), `source` (text, nullable), `external_ref` (text, nullable), `created_at` / `updated_at` (timestamptz)
+- **`categories`**: `id` (int4 PK), `name` (text, unique), `description`, `created_at`. Current rows: `PERSONAL`, `AI BIZ`, `TORCH`, `MESSAGE`, `TODO`, `MINISTRY`, `NEXT PROJECT`
+- **`idea_categories`**: M:N join (`idea_id`, `category_id`)
+- **`idea_connections`**: cross-links between ideas (`from_idea_id`, `to_idea_id`, `note`)
+- **`surface_log`**: audit trail (`idea_id`, `surfaced_at`, `context`)
+
+RLS is enabled on all tables. The service-role key bypasses RLS, which is what capture and the morning brief use.
+
+Two .env keys required: `IDEA_BRAIN_SUPABASE_URL`, `IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY`.
+
+- **Layer 1 — Time-anchored** (always surface): rows with `is_time_anchored = TRUE`, OR `due_date` ∈ {today, tomorrow}, OR `scheduled_for = today`
+- **Layer 2 — Rotating surprise:** rows where `is_time_anchored = FALSE`, not scheduled today, `last_surfaced_at` is null OR > 2 days ago, ordered by `RANDOM()`, limit 3
+- Hard cap of 3 ideas surfaced per morning brief (time-anchored first, rotating filling the rest)
+
+After surfacing, the routine updates each surfaced row: `last_surfaced_at = NOW()`, `surface_count += 1`, plus an `INSERT` into `surface_log` with `context = 'morning_brief'`.
+
+Action options on each surfaced idea (rendered as text in the brief; user replies to trigger):
+1. **Act today** → create a task/block; idea stays `status = 'active'` (still in rotation)
+2. **Schedule** → set `scheduled_for = <chosen date>`, `status = 'scheduled'`
+3. **Push to next week** → `scheduled_for = today + 7`, `status = 'scheduled'`
+4. **Keep quiet** → `last_surfaced_at = NOW() + INTERVAL '14 days'` (suppresses rotation for 2 weeks)
 
 **No dismiss option.** Ideas are seeds, not chores.
+
+**Action handlers** are processed in the evening recap or via email-reply parsing (Step 5+). The morning brief itself only surfaces and updates `last_surfaced_at` / `surface_count` / `surface_log`.
 
 ### Safety rules
 
@@ -314,6 +331,8 @@ After Step 5, the system runs daily. Soak for 2 weeks. Log what breaks, what fee
 | 2026-04-27 | Bible: 4 parallel tracks; system prompts 2 days before track ends | User preference; avoids pre-deciding next book |
 | 2026-04-27 | Workouts tracked flexibly via evening recap question | User preference; avoids over-rigid scheduling |
 | 2026-04-27 | PROJECT.md becomes source of truth; Reminder reduced to backup | Single-source-of-truth principle |
+| 2026-04-29 | Idea Brain moves from Google Doc → Supabase (`idea-brain`, `nifkdviqtwokroxvkxzw`) | Need rich relations: categories, cross-links, surface tracking, scheduled state. JSON in a Doc can't model these. Reverses the original "no DB" rule for the Idea Brain only — everything else stays JSON. |
+| 2026-04-29 | Capture pipeline rewritten: iOS Shortcut → Supabase POST; `scripts/capture.ts` writes to same table | Single canonical write path, regardless of capture surface. |
 
 ---
 

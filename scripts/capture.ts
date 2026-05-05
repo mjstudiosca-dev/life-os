@@ -15,7 +15,6 @@ import * as chrono from "chrono-node";
 
 import { createCalendarEvent } from "../connectors/calendar.js";
 import { createTask } from "../connectors/tasks.js";
-import { appendToDoc } from "../connectors/drive.js";
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -77,7 +76,8 @@ type RoutineConfig = {
 
 type Flags = {
   DRY_RUN: boolean;
-  IDEA_BRAIN_DOC_ID: string;
+  IDEA_BRAIN_SUPABASE_URL: string;
+  IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -109,14 +109,15 @@ function loadFlags(): Flags {
   //   2. .env file   (local dev config, gitignored)
   //   3. flags.json  (committed safe default)
   let dryRun: boolean | null = null;
+  const envFromFile: Record<string, string> = {};
 
   // 1 — process.env
   if (process.env["DRY_RUN"] !== undefined) {
     dryRun = process.env["DRY_RUN"].toLowerCase() === "true";
   }
 
-  // 2 — .env file
-  if (dryRun === null && existsSync(PATHS.envFile)) {
+  // 2 — .env file (parsed once for DRY_RUN + Supabase creds)
+  if (existsSync(PATHS.envFile)) {
     const envText = readFileSync(PATHS.envFile, "utf8");
     for (const rawLine of envText.split(/\r?\n/)) {
       const line = rawLine.trim();
@@ -125,21 +126,31 @@ function loadFlags(): Flags {
       if (eq < 0) continue;
       const key = line.slice(0, eq).trim();
       const val = line.slice(eq + 1).trim();
-      if (key === "DRY_RUN") {
+      envFromFile[key] = val;
+      if (key === "DRY_RUN" && dryRun === null) {
         dryRun = val.toLowerCase() === "true";
       }
     }
   }
 
-  // 3 — flags.json
-  const flagsRaw = JSON.parse(readFileSync(PATHS.flags, "utf8")) as Partial<Flags> & {
-    _comment?: string;
-  };
-  const docId = flagsRaw.IDEA_BRAIN_DOC_ID ?? "";
+  // 3 — flags.json (committed safe default for DRY_RUN only)
+  const flagsRaw = JSON.parse(readFileSync(PATHS.flags, "utf8")) as Partial<{
+    DRY_RUN: boolean;
+  }> & { _comment?: string };
+
+  // Supabase creds: process.env > .env file. No fallback — if missing,
+  // handleIdeaBrain explains the setup step.
+  const supabaseUrl =
+    process.env["IDEA_BRAIN_SUPABASE_URL"] ?? envFromFile["IDEA_BRAIN_SUPABASE_URL"] ?? "";
+  const supabaseKey =
+    process.env["IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY"] ??
+    envFromFile["IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY"] ??
+    "";
 
   return {
     DRY_RUN: dryRun ?? flagsRaw.DRY_RUN ?? true,
-    IDEA_BRAIN_DOC_ID: docId,
+    IDEA_BRAIN_SUPABASE_URL: supabaseUrl,
+    IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY: supabaseKey,
   };
 }
 
@@ -794,26 +805,93 @@ async function handleTasks(input: string, flags: Flags): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Handler — Idea Brain (stub)
+// Handler — Idea Brain (Supabase)
 // ---------------------------------------------------------------------------
+//
+// Inserts a row into the Supabase `ideas` table. Categories aren't assigned
+// here — set those via Supabase Studio or the iOS Shortcut path. The morning
+// brief reads from the same table.
+
+const TIME_ANCHORED_PATTERNS = [
+  /\bthis\s+week\b/i,
+  /\bby\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+|\d{1,2}\/\d{1,2})\b/i,
+  /\bsoon\b/i,
+  /\bupcoming\b/i,
+  /\btoday\b/i,
+  /\btomorrow\b/i,
+  /\btonight\b/i,
+];
+
+function detectsTimeAnchor(input: string): boolean {
+  // Cheap-and-honest pre-flag. Real time-anchoring lives in the DB column;
+  // this just helps the brief surface the idea promptly.
+  return TIME_ANCHORED_PATTERNS.some((p) => p.test(input));
+}
+
+function splitTitleAndBody(input: string): { title: string; body: string | null } {
+  // First sentence (or first 80 chars on a hard split) becomes the title;
+  // anything after is the body. Trims punctuation noise.
+  const trimmed = input.trim();
+  const sentenceMatch = trimmed.match(/^(.+?[.!?])\s+(.+)$/s);
+  if (sentenceMatch) {
+    return { title: sentenceMatch[1].trim(), body: sentenceMatch[2].trim() };
+  }
+  if (trimmed.length <= 80) {
+    return { title: trimmed, body: null };
+  }
+  // Hard split at the nearest space before char 80.
+  const cut = trimmed.lastIndexOf(" ", 80);
+  const splitAt = cut > 40 ? cut : 80;
+  return {
+    title: trimmed.slice(0, splitAt).trim(),
+    body: trimmed.slice(splitAt).trim(),
+  };
+}
 
 async function handleIdeaBrain(input: string, flags: Flags): Promise<void> {
-  if (!flags.IDEA_BRAIN_DOC_ID) {
+  if (!flags.IDEA_BRAIN_SUPABASE_URL || !flags.IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY) {
     console.log("");
-    console.log("IDEA_BRAIN_DOC_ID is not set in config/flags.json — cannot append.");
+    console.log(
+      "IDEA_BRAIN_SUPABASE_URL or IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY is not set in .env — cannot insert.",
+    );
+    console.log("Add both keys to .env (gitignored). See BUILD_LOG.md for the schema.");
     return;
   }
 
-  const line = `- ${todayISO()} — ${input.trim()}`;
+  const { title, body } = splitTitleAndBody(input);
+  const isTimeAnchored = detectsTimeAnchor(input);
+
+  const row = {
+    title,
+    body,
+    status: "active",
+    is_time_anchored: isTimeAnchored,
+    source: "capture_script",
+  };
+
   console.log("");
-  console.log("Idea Brain append payload:");
-  console.log(JSON.stringify({ docId: flags.IDEA_BRAIN_DOC_ID, line }, null, 2));
+  console.log("Idea Brain insert payload:");
+  console.log(JSON.stringify(row, null, 2));
 
   const ok = await askChoice("Confirm write? [y/n] ", ["y", "n"]);
   if (ok === "n") return;
 
-  await gateAndWrite(flags, "Idea Brain doc append (stub)", async () => {
-    await appendToDoc({ docId: flags.IDEA_BRAIN_DOC_ID, line });
+  await gateAndWrite(flags, "Supabase ideas — new row", async () => {
+    const url = `${flags.IDEA_BRAIN_SUPABASE_URL.replace(/\/$/, "")}/rest/v1/ideas`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: flags.IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${flags.IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(row),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Supabase insert failed (${res.status}): ${text}`);
+    }
   });
 }
 

@@ -2,7 +2,13 @@
   "wake_time": "06:00",
   "evening_recap_time": "20:00",
   "anchors": [],
-  "practice_goals": [],
+  "practice_goals": [
+    {
+      "label": "Living Fearless",
+      "scope": "190 pages",
+      "added": "2026-04-29"
+    }
+  ],
   "health": {
     "workouts_per_week": 5,
     "workout_types": ["lifting", "cardio"],

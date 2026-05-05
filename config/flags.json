@@ -1,5 +1,4 @@
 {
-  "_comment": "Safe default values for feature flags. At runtime, scripts read DRY_RUN from .env first, falling back to this file. Set DRY_RUN=false in .env only when you are ready to allow real writes to Gmail, Calendar, and Tasks. IDEA_BRAIN_DOC_ID is the Google Doc that capture appends to when an input is classified as an idea.",
-  "DRY_RUN": true,
-  "IDEA_BRAIN_DOC_ID": "1jaeSjOWcY4d46qOF3MqKMKr89SZmScZ-5QIf_MwC9Ng"
+  "_comment": "Safe default values for feature flags. At runtime, scripts read DRY_RUN from .env first, falling back to this file. Set DRY_RUN=false in .env only when you are ready to allow real writes. The Idea Brain has moved to Supabase (project `idea-brain`, ID `nifkdviqtwokroxvkxzw`). Capture and the morning brief read/write to the `ideas` table directly via Supabase. Two .env keys are required: IDEA_BRAIN_SUPABASE_URL and IDEA_BRAIN_SUPABASE_SERVICE_ROLE_KEY.",
+  "DRY_RUN": true
 }
