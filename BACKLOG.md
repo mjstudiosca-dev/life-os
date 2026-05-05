@@ -36,6 +36,8 @@ Tags suggested: `[Phase 2]` `[Phase 3]` `[Phase 4]` `[QoL]` `[Bug]` `[Idea]`
 ## Quality of life / small ideas
 
 - **[Step 5]** Timezone-aware scheduling — brief fires at 6am local clock wherever Malachi is. Cloud Routine must be configured to fire at the right local time, or read a timezone setting from config and adjust. Confirmed intent: 6am Central stays 6am when traveling to Pacific — not UTC-anchored.
+- **[Step 4.6 follow-up]** Host the Google Tasks MCP server (Path 7b) — currently stdio/local only, so the Cloud Routine omits the `📋 Tasks` section in cloud runs. To get tasks into the cloud-run brief, wrap `mcp-servers/google-tasks/` in HTTP/SSE transport and deploy to Cloudflare Workers / Vercel / Railway. Add as custom connector at `claude.ai/customize/connectors`, then attach to the routine.
+- **[Idea]** iOS Shortcut for idea capture — tap-to-dictate idea on iPhone, POSTs to Supabase. Tasks already have the Google Tasks app for capture, so this is for ideas only.
 
 ## Open / unsorted
 
@@ -43,4 +45,4 @@ Tags suggested: `[Phase 2]` `[Phase 3]` `[Phase 4]` `[QoL]` `[Bug]` `[Idea]`
 
 ---
 
-*Last updated: 2026-04-27*
+*Last updated: 2026-05-02*

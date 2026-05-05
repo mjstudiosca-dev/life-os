@@ -42,15 +42,27 @@ Using the Calendar MCP tool, list all events for today. For each event note:
 
 Separate the events into three buckets: Tier 1, Tier 2, Tier 3.
 
-### Step 4 — Get pending tasks
+### Step 4 — Get pending tasks (Google Tasks)
 
-Using the Tasks MCP tool, list all pending tasks. Note the title and due date
-(if any) of each.
+Tasks live in **Google Tasks** (canonical source). Use the Google Tasks MCP
+tool `list_pending_tasks` to fetch all pending (incomplete) tasks. For each:
+- `title`
+- `notes` (optional — keep brief, one line)
+- `due` (optional ISO date)
+
+If the Google Tasks MCP tool is not available in this run (the server is
+local-only and we're running in the cloud, or auth isn't configured), skip
+this step and omit the `📋 Tasks` section from the brief — don't error out.
 
 ### Step 5 — Query the Idea Brain (Supabase)
 
 The Idea Brain is a Supabase database (project `idea-brain`, ID
 `nifkdviqtwokroxvkxzw`). Use the Supabase MCP tool to run two queries:
+
+Both queries exclude any idea categorized `TODO` — those are tasks now and
+live in Google Tasks (Step 4). The `status = 'active'` filter alone handles
+the migrated rows, but we add a `NOT EXISTS` clause as belt-and-suspenders
+in case a new idea is tagged TODO by mistake.
 
 **Query A — Time-anchored ideas (always surface these first):**
 
@@ -61,6 +73,11 @@ FROM ideas i
 LEFT JOIN idea_categories ic ON ic.idea_id = i.id
 LEFT JOIN categories c ON c.id = ic.category_id
 WHERE i.status = 'active'
+  AND NOT EXISTS (
+    SELECT 1 FROM idea_categories ic2
+    JOIN categories c2 ON c2.id = ic2.category_id
+    WHERE ic2.idea_id = i.id AND c2.name = 'TODO'
+  )
   AND (
     i.is_time_anchored = TRUE
     OR i.due_date = CURRENT_DATE
@@ -81,6 +98,11 @@ LEFT JOIN idea_categories ic ON ic.idea_id = i.id
 LEFT JOIN categories c ON c.id = ic.category_id
 WHERE i.status = 'active'
   AND i.is_time_anchored = FALSE
+  AND NOT EXISTS (
+    SELECT 1 FROM idea_categories ic2
+    JOIN categories c2 ON c2.id = ic2.category_id
+    WHERE ic2.idea_id = i.id AND c2.name = 'TODO'
+  )
   AND (i.scheduled_for IS NULL OR i.scheduled_for != CURRENT_DATE)
   AND (i.due_date IS NULL OR i.due_date != CURRENT_DATE)
   AND (
@@ -197,7 +219,7 @@ Read `config/flags.json` from the repo root. Check the `DRY_RUN` field.
 Print a brief summary of what was sent/drafted:
 - Date
 - Number of calendar events found (by tier)
-- Number of tasks
+- Number of Google Tasks (or "section omitted — Google Tasks MCP not available")
 - Number of ideas surfaced (and whether the surface_log was updated)
 - Prayer names included
 - DRY_RUN status

@@ -77,7 +77,7 @@ These have been made. Don't re-debate without real reason.
 - **Language:** TypeScript on Node 20+
 - **Storage:** GitHub repo for code/config; Supabase (`idea-brain` project, ID `nifkdviqtwokroxvkxzw`) for the Idea Brain only
 - **Scheduling:** Cloud Routines in Claude Code (works when laptop is off, confirmed available on Pro plan)
-- **Integrations:** Gmail, Google Calendar, Google Tasks (custom MCP server), Supabase (for Idea Brain) — wired in via MCP connectors as each step needs them
+- **Integrations:** Gmail, Google Calendar (claude.ai connectors); Google Tasks (custom MCP server in `mcp-servers/google-tasks/`); Supabase (claude.ai connector, for the Idea Brain). Connectors attach to each routine via `claude.ai/customize/connectors` + the routine config.
 - **DB scope:** Supabase is **only** for the Idea Brain (rich relations: categories, connections, surface tracking). Everything else stays as JSON config + JSON state + markdown logs.
 
 ### Priority tiers
@@ -162,6 +162,21 @@ Action options on each surfaced idea (rendered as text in the brief; user replie
 **No dismiss option.** Ideas are seeds, not chores.
 
 **Action handlers** are processed in the evening recap or via email-reply parsing (Step 5+). The morning brief itself only surfaces and updates `last_surfaced_at` / `surface_count` / `surface_log`.
+
+### Tasks vs Ideas — clean split
+
+Tasks and ideas are different things and live in different systems:
+
+| Surface | Source of truth | Capture | Completion UX |
+|---------|-----------------|---------|---------------|
+| **Tasks** ("Wash backpack", "Buy AirTag") | **Google Tasks** | `scripts/capture.ts` → `connectors/tasks.ts`; iPhone Google Tasks app | Native Google Tasks app (tap to check) |
+| **Ideas** ("Summer planning system", "Sabbath message") | **Supabase `ideas`** | `scripts/capture.ts` → Supabase POST; iOS Shortcut (later) | Email reply → action handler (Step 5+) |
+
+The morning brief surfaces them in two separate sections:
+- `📋 Tasks` reads Google Tasks via the custom MCP server (`mcp-servers/google-tasks/`)
+- `💡 From your idea brain` reads Supabase via the Supabase MCP, **excluding `TODO`-categorized rows** (those are tasks now)
+
+The `TODO` category in Supabase is deprecated. Existing rows were migrated to Google Tasks via `scripts/migrate-todos-to-gtasks.ts`; their Supabase rows were marked `status = 'archived_to_gtasks'` (so they don't surface) with `external_ref` pointing back to the Google Tasks task id.
 
 ### Safety rules
 
@@ -333,6 +348,7 @@ After Step 5, the system runs daily. Soak for 2 weeks. Log what breaks, what fee
 | 2026-04-27 | PROJECT.md becomes source of truth; Reminder reduced to backup | Single-source-of-truth principle |
 | 2026-04-29 | Idea Brain moves from Google Doc → Supabase (`idea-brain`, `nifkdviqtwokroxvkxzw`) | Need rich relations: categories, cross-links, surface tracking, scheduled state. JSON in a Doc can't model these. Reverses the original "no DB" rule for the Idea Brain only — everything else stays JSON. |
 | 2026-04-29 | Capture pipeline rewritten: iOS Shortcut → Supabase POST; `scripts/capture.ts` writes to same table | Single canonical write path, regardless of capture surface. |
+| 2026-05-02 | Tasks split from ideas: Google Tasks is canonical for tasks, Supabase for ideas; built custom Google Tasks MCP server in `mcp-servers/google-tasks/` | Tasks need native phone-side check-off UX; ideas need rich relations. Two systems, each best at its job. TODO category in Supabase deprecated and migrated out. |
 
 ---
 

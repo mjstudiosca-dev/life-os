@@ -116,7 +116,9 @@ function loadFlags(): Flags {
     dryRun = process.env["DRY_RUN"].toLowerCase() === "true";
   }
 
-  // 2 — .env file (parsed once for DRY_RUN + Supabase creds)
+  // 2 — .env file (parsed once for DRY_RUN + Supabase creds + Google OAuth)
+  // We also populate process.env so the connectors (e.g. connectors/tasks.ts)
+  // can read OAuth credentials directly without going through Flags.
   if (existsSync(PATHS.envFile)) {
     const envText = readFileSync(PATHS.envFile, "utf8");
     for (const rawLine of envText.split(/\r?\n/)) {
@@ -127,6 +129,10 @@ function loadFlags(): Flags {
       const key = line.slice(0, eq).trim();
       const val = line.slice(eq + 1).trim();
       envFromFile[key] = val;
+      // Populate process.env without overriding any existing value.
+      if (process.env[key] === undefined) {
+        process.env[key] = val;
+      }
       if (key === "DRY_RUN" && dryRun === null) {
         dryRun = val.toLowerCase() === "true";
       }
@@ -799,8 +805,9 @@ async function handleTasks(input: string, flags: Flags): Promise<void> {
   const ok = await askChoice("Confirm write? [y/n] ", ["y", "n"]);
   if (ok === "n") return;
 
-  await gateAndWrite(flags, "Task (stub)", async () => {
-    await createTask(payload);
+  await gateAndWrite(flags, "Google Tasks — new task", async () => {
+    const created = await createTask(payload);
+    console.log(`  → Created task id ${created.id}`);
   });
 }
 

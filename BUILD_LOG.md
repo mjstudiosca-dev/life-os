@@ -290,3 +290,71 @@ wired in Step 4.5 — the brief simply surfaces.
 Was mid-setup (OAuth credentials being recreated, Path A vs Path B
 unresolved). Paused to ship the Idea Brain migration first since it
 unblocks today's brief. Tasks MCP picks back up after this lands.
+
+---
+
+## 2026-05-02 — Step 4.6: Tasks via Google Tasks (split from Idea Brain)
+
+**Decision: Google Tasks is canonical for tasks; Supabase for ideas only**
+The Step 4.5 brief was mixing TODOs into the `💡 From your idea brain`
+section because they shared the same Supabase `ideas` table. Cleaner split:
+tasks (short-lived, daily check-off) belong in Google Tasks where the
+iPhone app gives native completion UX; ideas (rich, percolating, relational)
+stay in Supabase. The TODO category in Supabase is deprecated.
+
+**Decision: Custom MCP server lives at `mcp-servers/google-tasks/`**
+Standalone subproject with its own `package.json` and dep tree. Reasons:
+- Keeps the main repo lean (no MCP SDK in root deps)
+- Server can later be deployed (Cloudflare Workers / Vercel / Railway)
+  without dragging the rest of the repo into the bundle
+- Clean ownership — anything Google-Tasks-specific is in one folder
+
+**Decision: Stdio transport for now**
+The MCP SDK supports stdio (local) and HTTP/SSE (hosted). Stdio is what
+Claude Code expects for local MCP servers via `mcp.json`. We ship stdio
+first (Path 7a). Hosted (Path 7b) is deferred — the brief just omits the
+Tasks section in Cloud Routine runs until the server is reachable.
+
+**Decision: Three exposed tools**
+- `list_pending_tasks(due_before?)` — used by the morning brief routine
+- `create_task(title, notes?, due?)` — used by capture flows + future iOS
+- `complete_task(id)` — used by evening recap / email-reply handlers (later)
+The default tasklist (`@default`) is targeted; multi-list support deferred.
+
+**Decision: Local connector at `connectors/tasks.ts` calls the API directly**
+The MCP server is for remote callers (the routine). Local capture.ts uses
+`googleapis` directly via `connectors/tasks.ts`. Two paths to the same
+Google API; auth env vars are shared. Reasons: keeps capture.ts independent
+of an MCP-client setup; the MCP server stays a clean delivery surface.
+
+**Decision: Both queries get a `NOT EXISTS` TODO filter**
+Even though `status = 'active'` already excludes the migrated rows
+(post-migration they're `archived_to_gtasks`), Query A and Query B now
+also exclude any active row that has TODO in its categories. Belt and
+suspenders for the case where someone tags a new idea TODO via Supabase
+Studio.
+
+**Decision: Migration script `scripts/migrate-todos-to-gtasks.ts`**
+Idempotent. For each active TODO row: create a Google Task with the
+title/body/due_date, then PATCH the source row to
+`status = 'archived_to_gtasks'` and set `external_ref` to the Google
+Tasks id (back-reference). DRY_RUN-gated. Failures don't roll back the
+already-succeeded ones — the script just reports counts.
+
+**Decision: capture.ts populates `process.env` from `.env`**
+Previously `loadFlags()` only extracted DRY_RUN and Supabase keys. With
+the Google Tasks connector reading three OAuth env vars, capture.ts now
+populates `process.env` for any key in `.env` that isn't already set.
+Connectors stay simple (`process.env` only) — entry-point scripts handle
+`.env` loading.
+
+**Decision: `googleapis` added to root deps**
+Bumped root `package.json` to include `googleapis ^144`. The MCP server
+subproject has its own copy too. Acceptable duplication — separate dep
+trees, not a runtime cost.
+
+**Path 7a vs Path 7b (deferred)**
+Path 7a (local-only stdio MCP) ships now. The Cloud Routine doesn't have
+access to the Tasks server, so the brief omits the `📋 Tasks` section in
+cloud runs. Path 7b (host the MCP) is deferred to a follow-up; needs
+an HTTP/SSE transport wrapper and a deploy target. Logged in BACKLOG.

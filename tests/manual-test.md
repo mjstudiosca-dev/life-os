@@ -105,9 +105,19 @@ and verify the "Best guess:" line. Press `q` to exit without writing.
 - [ ] `"Gym tomorrow at 9am"` → Tier 2 default; Stage 2 shows payload with correct date, time `09:00`; `[STUB] connectors/calendar.ts → createCalendarEvent` prints with the payload
 - [ ] `"Workout tomorrow at 9am Tier 1"` → Tier 1 picked up from input
 
-### Tasks — full flow (DRY_RUN on, stub fires)
+### Tasks — full flow (Google Tasks)
 
-- [ ] `"Buy groceries"` → Stage 2 shows payload with `dueDate: null`; `[STUB] connectors/tasks.ts → createTask` prints
+- [ ] `.env` has `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_TASKS_REFRESH_TOKEN` (gitignored)
+- [ ] `DRY_RUN=true npx tsx scripts/capture.ts "Buy groceries"` → Stage 2 shows payload with `dueDate: null`; DRY RUN notice prints (no real write)
+- [ ] `DRY_RUN=false npx tsx scripts/capture.ts "Buy groceries"` → real Google Tasks entry "Buy groceries" appears in the user's default tasklist within seconds; CLI prints `→ Created task id <gtasks-id>`
+- [ ] `DRY_RUN=false npx tsx scripts/capture.ts "Email coach about contract by Friday"` → task is created with `due` set to the upcoming Friday's ISO date
+
+### Tasks migration — one-time TODO → Google Tasks
+
+- [ ] `DRY_RUN=true npx tsx scripts/migrate-todos-to-gtasks.ts` → prints the list of active TODO-category Supabase rows but does not write
+- [ ] `DRY_RUN=false npx tsx scripts/migrate-todos-to-gtasks.ts` → each row becomes a Google Tasks entry; corresponding `ideas` row has `status = 'archived_to_gtasks'` and `external_ref = '<gtasks-id>'`
+- [ ] Re-running with `DRY_RUN=false` immediately after → script reports "No active TODO-category rows to migrate" (idempotent)
+- [ ] Verify in Supabase: `SELECT count(*) FROM ideas i JOIN idea_categories ic ON ic.idea_id=i.id JOIN categories c ON c.id=ic.category_id WHERE c.name='TODO' AND i.status='active'` returns 0
 
 ### Idea Brain — full flow (DRY_RUN on)
 

@@ -12,6 +12,7 @@
     "typescript": "^5.4.0"
   },
   "dependencies": {
-    "chrono-node": "^2.9.0"
+    "chrono-node": "^2.9.0",
+    "googleapis": "^144.0.0"
   }
 }

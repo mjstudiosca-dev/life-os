@@ -1,0 +1,25 @@
+{
+  "name": "@life-os/mcp-google-tasks",
+  "version": "0.1.0",
+  "description": "Local MCP server exposing Google Tasks to Claude Code (and the morning brief routine)",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mcp-google-tasks": "./dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/server.ts",
+    "auth-setup": "tsx scripts/auth-setup.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0"
+  }
+}
