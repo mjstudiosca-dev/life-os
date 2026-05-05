@@ -14,12 +14,13 @@ Tags suggested: `[Phase 2]` `[Phase 3]` `[Phase 4]` `[QoL]` `[Bug]` `[Idea]`
 
 ## Phase 2 candidates (validate after MVP soak)
 
+- **[Step 6 — primary Phase 2 direction]** Personal dashboard web app (Next.js + Supabase + Vercel). Push notifications replace email as the primary morning surface. Action handlers become real buttons. Unified `/today` view, capture form, idea CRUD, reading tracker, gym + calorie logging, history. Full spec at `specs/step-6-web-app.md`. Don't start until Phase 1 soaks 2 weeks.
 - **[Phase 2]** Auto time-budgeting — system proposes time blocks based on tier and calendar gaps
-- **[Phase 2]** Midday nudge — light check-in around lunch
-- **[Phase 2]** SMS delivery via Twilio — alongside email
+- **[Phase 2]** Midday nudge — light check-in around lunch (likely subsumed by web push in Step 6)
+- **[Phase 2]** SMS delivery via Twilio — alongside email (likely subsumed by web push in Step 6)
 - **[Phase 2]** Auto-suggest scheduling — proposes specific calendar slots
 - **[Phase 2]** Anchor learning — observe which Tier 1 anchors actually never move
-- **[Phase 2]** Drift detection — 3+ pushes on the same item triggers "do you actually want this?"
+- **[Phase 2]** Drift detection — 3+ pushes on the same item triggers "do you actually want this?" (easy after Step 6 action handlers exist)
 
 ## Phase 3 candidates
 

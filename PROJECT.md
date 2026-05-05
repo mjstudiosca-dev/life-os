@@ -280,13 +280,21 @@ Out of scope for Step 2: morning brief composition, evening recap, scheduled exe
 
 Daily-prep script that reads routine config + Bible plan + prayer roster and assembles the inputs the morning brief will need. No brief composition yet — just the data layer.
 
-### Step 4 — Unified morning brief
+### Step 4 — Unified morning brief ✅ DONE
 
-Composes and sends the brief via Gmail. Pulls Calendar + Plan calendar + Tasks + Routine + Practice + Bible reading + Prayer Roster + Idea Brain. First wired-up Cloud Routine.
+Composes and sends the brief via Gmail. Pulls Calendar + Tasks (Google Tasks via custom MCP) + Routine + Practice + Bible reading + Prayer Roster + Idea Brain (Supabase). First wired-up Cloud Routine.
+
+Sub-steps that landed inside Step 4:
+- Step 4.5: Idea Brain migrated from Google Doc to Supabase (rich relations, surface tracking)
+- Step 4.6: Tasks split out of the Idea Brain into Google Tasks (custom MCP server in `mcp-servers/google-tasks/`)
+
+### Step 4.7 — Morning brief polish
+
+Idea summarization, reading-goal page math, action-handler email-reply parser, gym + calorie capture, body context section. See `specs/step-4.7-polish.md`.
 
 ### Step 5 — Evening recap + miss-handling
 
-Per-tier miss handling. Calorie-log nudge. Prayer roster maintenance prompts. Second Cloud Routine.
+Per-tier miss handling. Calorie-log nudge. Prayer roster maintenance prompts. Bible track advancement on confirmation. Second Cloud Routine.
 
 ### Phase 1 done = MVP
 
@@ -300,12 +308,13 @@ After Step 5, the system runs daily. Soak for 2 weeks. Log what breaks, what fee
 
 ### Phase 2 candidates (originally scoped, validate after MVP soak)
 
+- **Step 6: Personal dashboard web app** — primary direction for Phase 2. Next.js + Supabase + Vercel; push notifications replace email; action handlers become real buttons; unified `/today` view; capture form; idea CRUD; reading tracker; gym + calorie logging; history. Locked decision (2026-05-05): push notifications preferred over email. See `specs/step-6-web-app.md`.
 - Auto time-budgeting (system proposes time blocks based on tier and available calendar gaps)
 - Midday nudge (light check-in around lunch)
-- SMS delivery via Twilio (in addition to email)
+- SMS delivery via Twilio (in addition to email — likely subsumed by web push in Step 6)
 - Auto-suggest scheduling (proposes specific calendar slots for items)
 - Anchor learning (system observes which Tier 1 anchors actually never move and which do, refines)
-- Drift detection (3+ pushes on the same item → "do you actually want this?")
+- Drift detection (3+ pushes on the same item → "do you actually want this?") — easy to wire after web-app action handlers exist
 
 ### Phase 3 candidates
 
@@ -349,6 +358,9 @@ After Step 5, the system runs daily. Soak for 2 weeks. Log what breaks, what fee
 | 2026-04-29 | Idea Brain moves from Google Doc → Supabase (`idea-brain`, `nifkdviqtwokroxvkxzw`) | Need rich relations: categories, cross-links, surface tracking, scheduled state. JSON in a Doc can't model these. Reverses the original "no DB" rule for the Idea Brain only — everything else stays JSON. |
 | 2026-04-29 | Capture pipeline rewritten: iOS Shortcut → Supabase POST; `scripts/capture.ts` writes to same table | Single canonical write path, regardless of capture surface. |
 | 2026-05-02 | Tasks split from ideas: Google Tasks is canonical for tasks, Supabase for ideas; built custom Google Tasks MCP server in `mcp-servers/google-tasks/` | Tasks need native phone-side check-off UX; ideas need rich relations. Two systems, each best at its job. TODO category in Supabase deprecated and migrated out. |
+| 2026-05-05 | Phase 2 direction = personal dashboard web app (Next.js + Supabase + Vercel) replacing email as primary surface | Email is one-way and fragile for action handlers; web app gives buttons, real-time state, dashboards. See `specs/step-6-web-app.md`. |
+| 2026-05-05 | Phase 2 morning ping = web push notification, not email | User preference. Email becomes opt-in fallback. |
+| 2026-05-05 | Step 4.7 added: morning-brief polish before Step 5 | Closes rough edges (idea summaries, reading-goal page math, gym/calorie capture, action-handler email-reply parser as a stop-gap) without growing scope to web app yet. See `specs/step-4.7-polish.md`. |
 
 ---
 
