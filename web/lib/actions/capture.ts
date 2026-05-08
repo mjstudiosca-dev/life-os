@@ -1,6 +1,7 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { createGoogleTask } from "@/lib/gtasks";
 import { revalidatePath } from "next/cache";
 
 type CaptureType =
@@ -55,16 +56,41 @@ export async function capture(
 
     if (type === "task") {
       const due = (extras.due_date as string) || null;
-      const { error } = await supabase.from("tasks").insert({
-        title: text,
-        notes: null,
-        status: "active",
-        due_date: due,
-        source: "web_capture",
-      });
+      // Create in Supabase first.
+      const { data: inserted, error } = await supabase
+        .from("tasks")
+        .insert({
+          title: text,
+          notes: null,
+          status: "active",
+          due_date: due,
+          source: "web_capture",
+        })
+        .select()
+        .single();
       if (error) throw error;
+      // Immediately mirror to Google Tasks (so it shows in the iPhone widget right away).
+      // If this fails, the daily sync cron picks it up.
+      let mirrorMsg = "";
+      try {
+        const created = await createGoogleTask({
+          title: text,
+          notes: null,
+          due,
+        });
+        await supabase
+          .from("tasks")
+          .update({
+            gtasks_id: created.id,
+            synced_at: new Date().toISOString(),
+          })
+          .eq("id", inserted.id);
+        mirrorMsg = " Synced to Google Tasks.";
+      } catch (err) {
+        mirrorMsg = " (Google Tasks sync deferred — daily cron will retry.)";
+      }
       revalidatePath("/today");
-      return { ok: true, message: "Task added. Will sync to Google Tasks within 15 min." };
+      return { ok: true, message: `Task added.${mirrorMsg}` };
     }
 
     if (type === "prayer") {

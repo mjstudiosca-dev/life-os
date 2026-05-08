@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { composeBrief } from "@/lib/brief";
+import { IdeaActions } from "@/components/IdeaActions";
+import { TaskCheckbox } from "@/components/TaskCheckbox";
+import { EnableNotifications } from "@/components/EnableNotifications";
 
 export const dynamic = "force-dynamic";
 
@@ -23,21 +26,20 @@ export default async function TodayPage() {
 
       {/* TASKS */}
       {brief.tasks.length > 0 && (
-        <Section
-          icon="📋"
-          title="Tasks"
-          href="/body" /* TODO: dedicated tasks page */
-        >
+        <Section icon="📋" title="Tasks">
           <ul className="space-y-2">
             {brief.tasks.map((t) => (
-              <li key={t.id} className="text-sm">
-                <span className="text-zinc-100">{t.title}</span>
-                {t.notes && (
-                  <span className="text-zinc-500"> — {t.notes.split("\n")[0]}</span>
-                )}
-                {t.due_date && (
-                  <span className="text-zinc-600"> · due {t.due_date}</span>
-                )}
+              <li key={t.id} className="text-sm flex items-start">
+                <TaskCheckbox taskId={t.id} />
+                <span className="flex-1">
+                  <span className="text-zinc-100">{t.title}</span>
+                  {t.notes && (
+                    <span className="text-zinc-500"> — {t.notes.split("\n")[0]}</span>
+                  )}
+                  {t.due_date && (
+                    <span className="text-zinc-600"> · due {t.due_date}</span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
@@ -125,10 +127,7 @@ export default async function TodayPage() {
                     <span className="text-amber-400"> (due {i.due_date})</span>
                   )}
                 </div>
-                {/* Action buttons placeholder — wired in next pass */}
-                <div className="mt-1 text-xs text-zinc-500">
-                  ↳ Act today · Schedule · Push to next week · Keep quiet
-                </div>
+                <IdeaActions ideaId={i.id} />
               </li>
             ))}
           </ul>
@@ -160,6 +159,8 @@ export default async function TodayPage() {
           )}
         </ul>
       </Section>
+
+      <EnableNotifications />
 
       <nav className="mt-10 flex gap-3 flex-wrap text-sm">
         <NavLink href="/capture">Capture</NavLink>
