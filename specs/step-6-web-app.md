@@ -1,6 +1,14 @@
 # Step 6 Spec — Personal Dashboard Web App (Phase 2)
 
-**Status:** Vision document. Not started. Don't build until Phase 1 MVP has
+> **⚠️ SUPERSEDED 2026-05-05.** This is now Step 5, not Step 6 — the
+> 2-week soak rule was dropped after the Malachi/Claude brainstorm
+> identified that the email pipeline is more complex than a web app
+> would be. See `specs/step-5-webapp.md` for the current plan. This
+> file kept for reference (the v1 feature list, deployment checklist,
+> v2+ candidates remain accurate).
+
+**Status:** SUPERSEDED. See `specs/step-5-webapp.md`.
+**Original status:** Vision document. Not started. Don't build until Phase 1 MVP has
 soaked for 2 weeks per PROJECT.md's build principle.
 **Depends on:** Phase 1 complete (Steps 1–5), 2-week soak with daily use,
 identified pain points logged from real usage.
@@ -110,13 +118,32 @@ email, Supabase as the unified source of truth.
 ### Action handlers (replaces Step 4.7's email-reply parser)
 
 Real buttons under each idea on `/today`:
-- **Act today** → creates a Google Tasks entry + keeps idea active
-- **Schedule** → date picker → sets `scheduled_for`, `status = 'scheduled'`
+- **Act today** → creates a Google Tasks entry + keeps idea active. The
+  app then **AI-suggests a calendar slot** for the new task: looks at
+  today's free time around existing Tier 1/2 events, proposes "10:30am –
+  11:00am" or "after 3pm". User one-taps to accept or decline.
+- **Schedule** → date picker → sets `scheduled_for`, `status = 'scheduled'`.
+  Same AI-suggested slot UX, just for the picked date instead of today.
 - **Push to next week** → sets `scheduled_for = today + 7`,
   `status = 'scheduled'`
 - **Keep quiet** → sets `last_surfaced_at = NOW() + 14 days`
 
-All four mutations are server actions hitting Supabase directly.
+All four mutations are server actions hitting Supabase directly. AI
+slot-suggestion uses the user's Calendar (read via Calendar MCP) plus
+tier rules: don't propose during Tier 1 blocks, prefer slots ≥30 min,
+respect lunch boundaries, etc.
+
+### Auto-scheduling for tasks (broader)
+
+Beyond the action-handler path, the web app proactively offers slots
+for any task in the user's Google Tasks list:
+- `/today` shows pending Google Tasks with a "schedule" button
+- Tap → app proposes 1–3 slots based on today's calendar gaps
+- Confirm → creates a calendar block (event with the task title) AND
+  links it back to the task via `external_ref` or notes
+- Marking the calendar block done auto-completes the linked task
+
+This subsumes the `[Phase 2] Auto-suggest scheduling` BACKLOG entry.
 
 ### Notifications
 

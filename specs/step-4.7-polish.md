@@ -1,6 +1,15 @@
 # Step 4.7 Spec — Morning Brief Polish
 
-**Status:** Drafted, not started. Picks up after Step 4.6 (Google Tasks).
+> **⚠️ SUPERSEDED 2026-05-05.** This step is now folded into
+> `specs/step-5-webapp.md`. The brainstorm with Malachi pivoted away
+> from polishing the email pipeline toward building the web app
+> directly. Most items here (idea summaries, body context, reading-goal
+> math, action handlers) are now v1 features of the web app instead of
+> email-routine edits. The action-handler email-reply parser is dropped
+> entirely — replaced by real buttons in the web app. Kept here for
+> reference; do not build from this spec.
+
+**Status:** SUPERSEDED. Picks up after Step 4.6 (Google Tasks).
 **Depends on:** Step 4.5 (Supabase Idea Brain), Step 4.6 (Google Tasks)
 **Out of scope:** Evening recap (Step 5), web app (Step 6)
 
@@ -28,15 +37,24 @@ architecture.
 
 ## Items
 
-### 1. Summarize ideas, don't paste
+### 1. Summarize ideas AND tasks, don't paste
 
-**Currently:** routine prompt says "first sentence of body, truncated to ~100
-characters". Result is robotic excerpts that often cut mid-thought.
+**Currently for ideas:** routine prompt says "first sentence of body,
+truncated to ~100 characters". Result is robotic excerpts that often cut
+mid-thought.
 
-**Change:** routine prompt says "summarize the idea in one line — capture the
-thesis or the action it implies, in your own words". Claude already has the
-full body in the query result; this is just a wording change to
-`routines/morning-brief.md` Step 7's format rules.
+**Currently for tasks:** routine prompt only shows the title — task notes
+aren't surfaced at all.
+
+**Change:**
+- For ideas: "summarize the idea in one line — capture the thesis or the
+  action it implies, in your own words." Claude already has the full body
+  in the query result.
+- For tasks: when a Google Task has notes, summarize them in one line
+  appended after the title (e.g. `• Buy AirTag for keys — for keychain
+  tracker`). Skip the dash if no notes.
+
+Both are wording changes to `routines/morning-brief.md` Step 7.
 
 **Effort:** 5 min. No code, no schema.
 

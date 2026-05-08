@@ -358,3 +358,70 @@ Path 7a (local-only stdio MCP) ships now. The Cloud Routine doesn't have
 access to the Tasks server, so the brief omits the `📋 Tasks` section in
 cloud runs. Path 7b (host the MCP) is deferred to a follow-up; needs
 an HTTP/SSE transport wrapper and a deploy target. Logged in BACKLOG.
+
+---
+
+## 2026-05-05 — Step 5 Phase A: Data consolidation into Supabase
+
+After a brainstorm with Malachi about whether the architecture matched his
+"personal assistant" goal, we pivoted: the email pipeline was getting
+*more* complex with each feature (custom Tasks MCP, action-handler email
+parsing, multiple OAuth paths), while a web app would be *simpler* — one
+UI, one DB, real action buttons, push notifications, no Cloud Routine
+quota concerns. Locked the new direction (see PROJECT.md decisions log
+2026-05-05 entries).
+
+**Decision: All Life OS state consolidates into Supabase**
+9 new tables added in one migration:
+- `tasks` (canonical; mirrors to Google Tasks)
+- `prayer_roster` (replaces `config/prayer-roster.json`)
+- `bible_tracks` (consolidates `config/bible-plan.json` + `state/reading-progress.json`)
+- `routine_settings` (single-row JSONB; replaces `config/routine.json`)
+- `practice_goals` (extracted from `routine.json` array)
+- `reading_goals` (new — for the page-per-day math feature)
+- `workouts` (new — body tracking)
+- `calorie_log` (new — body tracking)
+- `daily_briefs` (new — archive of computed briefs)
+
+All RLS-enabled (matches existing pattern). `tasks.linked_idea_id` FKs
+back to `ideas.id` so we can trace tasks created from "Act today" actions.
+
+**Decision: Existing data migrated immediately**
+- 9 prayer roster entries seeded
+- 4 bible tracks seeded
+- 1 routine_settings row (full JSONB)
+- 1 practice goal (Living Fearless, 190 pages)
+- 4 tasks pulled from Google Tasks (the migrated TODO ideas), with
+  `gtasks_id` linking forward and `linked_idea_id` linking back
+
+**Decision: Old JSON files left in place but deprecated**
+`config/prayer-roster.json`, `config/bible-plan.json`, `config/routine.json`,
+`state/reading-progress.json`, `state/brief-payload.json` remain in the
+repo as snapshot/reference. New writes go to Supabase. After the web app
+ships and stabilizes, they'll move to `archive/` (per Step 5 spec).
+
+**Decision: Old code (`scripts/capture.ts`, `scripts/prep.ts`,
+`routines/morning-brief.md`) left untouched**
+Updating them to read from Supabase is incremental work that gets thrown
+away when the web app ships. The web app replaces them entirely. Old
+Cloud Routine continues to run and read JSON until cutover.
+
+**Decision: Tasks pattern is "Supabase canonical + Google Tasks mirror"**
+- Web app writes only to Supabase (clean, fast, single source of truth)
+- A 15-minute Vercel Cron job pushes new/changed `tasks` rows to Google
+  Tasks (creates/updates/completes) and pulls completion-state changes
+  back from Google Tasks (in case user checked off via iPhone widget)
+- `tasks.gtasks_id` stores the mirror id; `tasks.synced_at` marks the
+  last successful sync. Conflict resolution: last-write-wins, fine for
+  personal scale.
+
+**Decision: Vercel Cron replaces Cloud Routines for the web app**
+Free tier, no claude.ai routine quota, runs in the same project as the
+web app code. Existing Cloud Routine remains active until web-app
+cutover so the daily brief never disappears.
+
+**Decision: Step 4.7 polish work folded into Step 5 web app**
+The email-reply action-handler parser is dropped entirely (replaced by
+real buttons in the web app). Other 4.7 items (idea summaries, body
+context, reading-goal math) become v1 features of the web app instead
+of email-routine edits. `specs/step-4.7-polish.md` marked superseded.

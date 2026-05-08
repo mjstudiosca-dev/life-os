@@ -288,13 +288,15 @@ Sub-steps that landed inside Step 4:
 - Step 4.5: Idea Brain migrated from Google Doc to Supabase (rich relations, surface tracking)
 - Step 4.6: Tasks split out of the Idea Brain into Google Tasks (custom MCP server in `mcp-servers/google-tasks/`)
 
-### Step 4.7 — Morning brief polish
+### Step 4.7 — Morning brief polish — SUPERSEDED
 
-Idea summarization, reading-goal page math, action-handler email-reply parser, gym + calorie capture, body context section. See `specs/step-4.7-polish.md`.
+The polish work folded into Step 5 (web app). The email-reply action-handler parser is dropped entirely — real buttons in the web app replace it. See `specs/step-4.7-polish.md` (header notes the supersession).
 
-### Step 5 — Evening recap + miss-handling
+### Step 5 — Consolidation + Personal Dashboard Web App
 
-Per-tier miss handling. Calorie-log nudge. Prayer roster maintenance prompts. Bible track advancement on confirmation. Second Cloud Routine.
+Consolidates all state into Supabase, builds a Next.js + Vercel + Supabase web app as the primary daily surface, replaces email with web push notifications, replaces Cloud Routines with Vercel Cron, mirrors tasks to Google Tasks for the iPhone widget. Subsumes the original "evening recap" goals (recap UI is a page in the web app, not a separate email routine). See `specs/step-5-webapp.md`.
+
+**As of 2026-05-05:** Phase A (data consolidation) is complete — all JSON state is now in Supabase. Phase B (the web app build itself) is the next session's work.
 
 ### Phase 1 done = MVP
 
@@ -361,6 +363,12 @@ After Step 5, the system runs daily. Soak for 2 weeks. Log what breaks, what fee
 | 2026-05-05 | Phase 2 direction = personal dashboard web app (Next.js + Supabase + Vercel) replacing email as primary surface | Email is one-way and fragile for action handlers; web app gives buttons, real-time state, dashboards. See `specs/step-6-web-app.md`. |
 | 2026-05-05 | Phase 2 morning ping = web push notification, not email | User preference. Email becomes opt-in fallback. |
 | 2026-05-05 | Step 4.7 added: morning-brief polish before Step 5 | Closes rough edges (idea summaries, reading-goal page math, gym/calorie capture, action-handler email-reply parser as a stop-gap) without growing scope to web app yet. See `specs/step-4.7-polish.md`. |
+| 2026-05-05 | Step 4.7 also summarizes Google Tasks notes (not just idea bodies) | Same treatment as ideas — surface a one-line summary instead of raw notes. |
+| 2026-05-05 | AI-suggested scheduling for tasks lands in Step 6 (web app), not Step 4.7 | Needs UI to confirm/decline proposed slots. Email reply can't do that cleanly. Subsumes the original "Auto-suggest scheduling" Phase 2 idea. |
+| 2026-05-05 | Pivoted to web app NOW (was Phase 2 / Step 6) — collapsed into Step 5 | Brainstorm + simplicity analysis: the email pipeline is more complex than a web app would be (custom MCP server, multiple OAuth flows, fragile email-reply parsing). The web app reduces moving parts, gives push notifications, makes action handlers real, gives phone editability. Soak rule dropped because the pivot reduces total complexity. |
+| 2026-05-05 | All Life OS state consolidated into Supabase | New tables: `tasks`, `prayer_roster`, `bible_tracks`, `routine_settings`, `practice_goals`, `reading_goals`, `workouts`, `calorie_log`, `daily_briefs`. JSON files become deprecated reference. Single canonical source of truth. |
+| 2026-05-05 | Tasks pattern: Supabase canonical + Google Tasks mirror | Web app reads/writes Supabase (single source of truth, AI-queryable). A 15-min cron pushes new/changed Supabase tasks to Google Tasks and pulls completions back. iPhone widget retained for glanceable visibility. |
+| 2026-05-05 | Vercel Cron replaces Cloud Routines | Free, no quota concerns, runs alongside the web app. Cloud Routines retained until cutover. |
 
 ---
 
