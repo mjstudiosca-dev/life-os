@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { APP_VERSION } from "@/lib/version";
 
 export const metadata: Metadata = {
   title: "Life OS",
@@ -8,12 +9,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Life OS",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#f5efe6",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,7 +27,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen antialiased">
+      <body className="bg-cream text-ink min-h-screen">
+        <div
+          className="pointer-events-none fixed top-3 right-4 z-50 text-[10px] uppercase tracking-[0.18em] text-ash"
+          aria-label="App version"
+        >
+          {APP_VERSION}
+        </div>
         {children}
       </body>
     </html>

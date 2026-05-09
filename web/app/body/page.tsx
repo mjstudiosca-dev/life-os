@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 export default async function BodyPage() {
   const supabase = createServiceClient();
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA");
+  const since = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000,
+  ).toLocaleDateString("en-CA");
 
   const [workoutsRes, calsRes] = await Promise.all([
     supabase
@@ -25,58 +27,92 @@ export default async function BodyPage() {
   const calories = (calsRes.data ?? []) as CalorieEntry[];
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-6">
-      <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-light">Body</h1>
-        <Link href="/today" className="text-sm text-zinc-400 hover:text-zinc-100">
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-32">
+      <header className="mb-8 flex items-baseline justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-ash mb-1">
+            Last 30 days
+          </p>
+          <h1 className="font-serif text-4xl text-oxblood">Body</h1>
+        </div>
+        <Link href="/today" className="text-sm text-smoke hover:text-ink">
           ← today
         </Link>
       </header>
 
-      <section className="mb-8">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">
-          🏋 Workouts (last 30 days)
-        </h2>
+      <Section title="Workouts">
         {workouts.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No workouts logged. <Link href="/capture" className="underline">Log one →</Link>
+          <p className="text-smoke italic font-serif">
+            No workouts logged.{" "}
+            <Link href="/capture" className="underline hover:text-ink">
+              Log one →
+            </Link>
           </p>
         ) : (
-          <ul className="space-y-1.5 text-sm">
+          <ul className="divide-y divide-bone/60">
             {workouts.map((w) => (
-              <li key={w.id} className="flex justify-between border-b border-zinc-900 py-1.5">
+              <li
+                key={w.id}
+                className="flex justify-between py-2 text-sm"
+              >
                 <span>
-                  <span className="text-zinc-300">{w.date}</span>
-                  <span className="text-zinc-500"> · {w.type}</span>
+                  <span className="text-ink">{w.date}</span>
+                  <span className="text-smoke"> · {w.type}</span>
                 </span>
-                {w.notes && <span className="text-zinc-600 truncate max-w-xs">{w.notes}</span>}
+                {w.notes && (
+                  <span className="text-ash truncate max-w-xs italic font-serif">
+                    {w.notes}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">
-          🍴 Calories (last 30 days)
-        </h2>
+      <Section title="Calories">
         {calories.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No entries. <Link href="/capture" className="underline">Log one →</Link>
+          <p className="text-smoke italic font-serif">
+            No entries.{" "}
+            <Link href="/capture" className="underline hover:text-ink">
+              Log one →
+            </Link>
           </p>
         ) : (
-          <ul className="space-y-1.5 text-sm">
+          <ul className="divide-y divide-bone/60">
             {calories.map((c) => (
-              <li key={c.id} className="flex justify-between border-b border-zinc-900 py-1.5">
-                <span className="text-zinc-300">{c.date}</span>
-                <span className="text-zinc-500">
+              <li
+                key={c.id}
+                className="flex justify-between py-2 text-sm"
+              >
+                <span className="text-ink">{c.date}</span>
+                <span className="text-smoke">
                   {c.calories ?? "—"} cal · {c.protein_g ?? "—"}g protein
                 </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Section>
     </main>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-8">
+      <h2 className="text-[11px] uppercase tracking-[0.22em] text-ash mb-3">
+        {title}
+      </h2>
+      <div className="rounded-xl border border-bone/60 bg-sand/40 px-5 py-3">
+        {children}
+      </div>
+    </section>
   );
 }

@@ -11,10 +11,10 @@ export function TaskCheckbox({ taskId }: { taskId: number }) {
       type="button"
       onClick={() => startTransition(() => taskComplete(taskId).then(() => {}))}
       disabled={pending}
-      className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded border border-zinc-600 hover:border-zinc-300 disabled:opacity-50"
+      className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-smoke bg-cream hover:border-ink hover:bg-sand transition disabled:opacity-50"
       aria-label="Complete task"
     >
-      {pending && <span className="text-[10px] text-zinc-400">…</span>}
+      {pending && <span className="text-[10px] text-smoke">…</span>}
     </button>
   );
 }

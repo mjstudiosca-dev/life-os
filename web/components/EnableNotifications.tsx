@@ -13,7 +13,9 @@ function urlBase64ToUint8Array(base64String: string): BufferSource {
 }
 
 export function EnableNotifications() {
-  const [status, setStatus] = useState<"unsupported" | "denied" | "granted" | "default" | "subscribed" | "checking">("checking");
+  const [status, setStatus] = useState<
+    "unsupported" | "denied" | "granted" | "default" | "subscribed" | "checking"
+  >("checking");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function EnableNotifications() {
   if (status === "checking" || status === "subscribed") return null;
   if (status === "unsupported") {
     return (
-      <p className="text-xs text-zinc-500 mt-4">
+      <p className="mt-8 text-xs text-smoke italic">
         Push notifications aren't supported in this browser. Use Safari on iOS
         16.4+ (after installing the PWA) or any modern desktop browser.
       </p>
@@ -80,16 +82,21 @@ export function EnableNotifications() {
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-sm">
-      <p className="mb-2 text-zinc-200">Get a daily 6 AM brief notification on this device.</p>
+    <div className="mt-10 rounded-xl border border-bone bg-sand/40 p-5">
+      <p className="font-serif text-lg text-oxblood mb-1">
+        Wake up to your brief.
+      </p>
+      <p className="text-sm text-smoke mb-4">
+        Get a 6 AM notification on this device.
+      </p>
       <button
         onClick={enable}
         disabled={status === "denied"}
-        className="rounded-lg bg-zinc-100 text-zinc-900 px-3 py-1.5 font-medium hover:bg-white disabled:opacity-50"
+        className="rounded-lg bg-plum text-cream px-4 py-2 font-medium hover:bg-oxblood disabled:opacity-50 transition"
       >
         {status === "denied" ? "Notifications blocked" : "Enable notifications"}
       </button>
-      {error && <p className="mt-2 text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-sm text-rust">{error}</p>}
     </div>
   );
 }

@@ -16,30 +16,40 @@ export default async function TodayPage() {
   const brief = await composeBrief();
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-6 pb-24">
-      <header className="mb-6">
-        <h1 className="text-2xl font-light">
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-32">
+      <header className="mb-10">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-ash mb-2">
+          Today
+        </p>
+        <h1 className="font-serif text-5xl leading-tight text-oxblood">
           {formatLongDate(brief.date, brief.day_of_week)}
         </h1>
-        <p className="text-sm text-zinc-500">Good morning.</p>
+        <p className="mt-3 text-smoke italic font-serif text-lg">
+          Good morning.
+        </p>
       </header>
 
       {/* TASKS */}
       {brief.tasks.length > 0 && (
         <Section icon="📋" title="Tasks">
-          <ul className="space-y-2">
+          <ul className="divide-y divide-bone/60">
             {brief.tasks.map((t) => (
-              <li key={t.id} className="text-sm flex items-start">
+              <li key={t.id} className="py-2.5 flex items-start gap-3">
                 <TaskCheckbox taskId={t.id} />
-                <span className="flex-1">
-                  <span className="text-zinc-100">{t.title}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-ink">{t.title}</span>
                   {t.notes && (
-                    <span className="text-zinc-500"> — {t.notes.split("\n")[0]}</span>
+                    <span className="text-smoke">
+                      {" "}
+                      — {t.notes.split("\n")[0]}
+                    </span>
                   )}
                   {t.due_date && (
-                    <span className="text-zinc-600"> · due {t.due_date}</span>
+                    <span className="ml-2 text-xs text-rust">
+                      due {t.due_date}
+                    </span>
                   )}
-                </span>
+                </div>
               </li>
             ))}
           </ul>
@@ -48,41 +58,47 @@ export default async function TodayPage() {
 
       {/* PRACTICE & DEVOTION */}
       <Section icon="📖" title="Practice & devotion">
-        <ul className="space-y-1.5 text-sm">
-          <li>{brief.bible.proverbs}</li>
-          <li>{brief.bible.psalms}</li>
-          <li>
-            Gospels: {brief.bible.gospels.reading}
-            {brief.bible.gospels.days_until_end !== null &&
-              brief.bible.gospels.days_until_end <= 2 && (
-                <span className="text-amber-400">
-                  {" "}
-                  (finishing soon — what's next?)
-                </span>
-              )}
-          </li>
-          <li>
-            Isaiah: {brief.bible.isaiah.reading}
-            {brief.bible.isaiah.days_until_end !== null &&
-              brief.bible.isaiah.days_until_end <= 2 && (
-                <span className="text-amber-400">
-                  {" "}
-                  (finishing soon — what's next?)
-                </span>
-              )}
-          </li>
+        <ul className="space-y-2 text-ink">
+          <BibleRow label="Proverbs" value={brief.bible.proverbs} />
+          <BibleRow label="Psalms" value={brief.bible.psalms} />
+          <BibleRow
+            label="Gospels"
+            value={brief.bible.gospels.reading}
+            warn={
+              brief.bible.gospels.days_until_end !== null &&
+              brief.bible.gospels.days_until_end <= 2
+            }
+          />
+          <BibleRow
+            label="Isaiah"
+            value={brief.bible.isaiah.reading}
+            warn={
+              brief.bible.isaiah.days_until_end !== null &&
+              brief.bible.isaiah.days_until_end <= 2
+            }
+          />
           {brief.practice_goals.map((g) => (
-            <li key={g.id}>
-              {g.label}
-              {g.scope && <span className="text-zinc-500"> ({g.scope})</span>}
+            <li key={g.id} className="flex items-baseline gap-3">
+              <span className="font-serif italic text-rust w-20 shrink-0">
+                Practice
+              </span>
+              <span>
+                {g.label}
+                {g.scope && <span className="text-smoke"> · {g.scope}</span>}
+              </span>
             </li>
           ))}
           {brief.reading_goals.map((g) => (
-            <li key={g.id}>
-              {g.title}: pp. {g.today_start}–{g.today_end} today
-              <span className="text-zinc-500">
-                {" "}
-                ({g.days_remaining}d left)
+            <li key={g.id} className="flex items-baseline gap-3">
+              <span className="font-serif italic text-rust w-20 shrink-0">
+                Reading
+              </span>
+              <span>
+                {g.title}: pp. {g.today_start}–{g.today_end}
+                <span className="text-smoke">
+                  {" "}
+                  ({g.days_remaining}d left)
+                </span>
               </span>
             </li>
           ))}
@@ -91,18 +107,18 @@ export default async function TodayPage() {
 
       {/* PRAYER */}
       <Section icon="🙏" title="Praying for">
-        <ul className="space-y-1.5 text-sm">
+        <ul className="space-y-2.5">
           {brief.prayer.ongoing.map((p) => (
-            <li key={p.name}>
-              <span className="text-zinc-100">{p.name}</span>
-              <span className="text-zinc-500"> — {p.situation}</span>
+            <li key={p.name} className="text-ink">
+              <span className="font-serif italic text-plum">{p.name}</span>
+              <span className="text-smoke"> · {p.situation}</span>
             </li>
           ))}
           {brief.prayer.date_anchored.map((p) => (
-            <li key={p.name}>
-              <span className="text-zinc-100">{p.name}</span>
-              <span className="text-zinc-500"> — {p.situation}</span>
-              <span className="text-amber-400"> (today)</span>
+            <li key={p.name} className="text-ink">
+              <span className="font-serif italic text-plum">{p.name}</span>
+              <span className="text-smoke"> · {p.situation}</span>
+              <span className="ml-2 text-xs text-rust">today</span>
             </li>
           ))}
         </ul>
@@ -112,49 +128,76 @@ export default async function TodayPage() {
       {(brief.ideas_time_anchored.length > 0 ||
         brief.ideas_rotating.length > 0) && (
         <Section icon="💡" title="From your idea brain">
-          <ul className="space-y-3">
-            {[...brief.ideas_time_anchored, ...brief.ideas_rotating].map((i) => (
-              <li key={i.id} className="text-sm">
-                <div>
-                  <span className="text-zinc-100">{i.title}</span>
-                  {i.categories.length > 0 && (
-                    <span className="text-zinc-600">
-                      {" "}
-                      [{i.categories.join(", ")}]
-                    </span>
+          <ul className="space-y-5">
+            {[...brief.ideas_time_anchored, ...brief.ideas_rotating].map(
+              (i) => (
+                <li key={i.id}>
+                  <p className="text-ink">
+                    <span className="font-medium">{i.title}</span>
+                    {i.categories.length > 0 && (
+                      <span className="ml-2 text-[11px] uppercase tracking-wider text-sage">
+                        {i.categories.join(" · ")}
+                      </span>
+                    )}
+                    {i.due_date && (
+                      <span className="ml-2 text-xs text-rust">
+                        due {i.due_date}
+                      </span>
+                    )}
+                  </p>
+                  {i.body && (
+                    <p className="mt-1 text-sm text-smoke font-serif italic">
+                      {(i.body.split(/[.!?]\s/)[0] || i.body).slice(0, 140)}
+                      {i.body.length > 140 ? "…" : ""}
+                    </p>
                   )}
-                  {i.due_date && (
-                    <span className="text-amber-400"> (due {i.due_date})</span>
-                  )}
-                </div>
-                <IdeaActions ideaId={i.id} />
-              </li>
-            ))}
+                  <IdeaActions ideaId={i.id} />
+                </li>
+              ),
+            )}
           </ul>
         </Section>
       )}
 
       {/* BODY */}
       <Section icon="🏋" title="Body">
-        <ul className="space-y-1.5 text-sm">
+        <ul className="space-y-2 text-ink">
           {brief.body.last_workout ? (
-            <li>
-              Last trained: {brief.body.days_since_workout} day
-              {brief.body.days_since_workout === 1 ? "" : "s"} ago (
-              {brief.body.last_workout.type})
+            <li className="flex items-baseline gap-3">
+              <span className="font-serif italic text-sage w-24 shrink-0">
+                Last trained
+              </span>
+              <span>
+                {brief.body.days_since_workout} day
+                {brief.body.days_since_workout === 1 ? "" : "s"} ago
+                <span className="text-smoke"> · {brief.body.last_workout.type}</span>
+              </span>
             </li>
           ) : (
-            <li className="text-zinc-500">No workouts logged yet</li>
+            <li className="text-smoke italic">No workouts logged yet</li>
           )}
-          <li>
-            This week: {brief.body.workouts_this_week} /{" "}
-            {brief.body.weekly_target} sessions
+          <li className="flex items-baseline gap-3">
+            <span className="font-serif italic text-sage w-24 shrink-0">
+              This week
+            </span>
+            <span>
+              {brief.body.workouts_this_week} / {brief.body.weekly_target}
+              <span className="text-smoke"> sessions</span>
+            </span>
           </li>
           {brief.body.calories_avg_7d !== null && (
-            <li>
-              7-day avg: {brief.body.calories_avg_7d} cal /{" "}
-              {brief.body.protein_avg_7d ?? "—"}g protein (target{" "}
-              {brief.body.protein_target}g)
+            <li className="flex items-baseline gap-3">
+              <span className="font-serif italic text-sage w-24 shrink-0">
+                7-day avg
+              </span>
+              <span>
+                {brief.body.calories_avg_7d} cal
+                <span className="text-smoke">
+                  {" · "}
+                  {brief.body.protein_avg_7d ?? "—"}g protein (target{" "}
+                  {brief.body.protein_target}g)
+                </span>
+              </span>
             </li>
           )}
         </ul>
@@ -162,8 +205,10 @@ export default async function TodayPage() {
 
       <EnableNotifications />
 
-      <nav className="mt-10 flex gap-3 flex-wrap text-sm">
-        <NavLink href="/capture">Capture</NavLink>
+      <nav className="mt-12 grid grid-cols-3 gap-2 text-sm">
+        <NavLink href="/capture" emphasis>
+          + Capture
+        </NavLink>
         <NavLink href="/ideas">Ideas</NavLink>
         <NavLink href="/body">Body</NavLink>
         <NavLink href="/reading">Reading</NavLink>
@@ -177,37 +222,66 @@ export default async function TodayPage() {
 function Section({
   icon,
   title,
-  href,
   children,
 }: {
   icon: string;
   title: string;
-  href?: string;
   children: React.ReactNode;
 }) {
-  const inner = (
-    <div className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4 mb-3">
-      <h2 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">
-        <span className="mr-2">{icon}</span>
+  return (
+    <section className="mb-8">
+      <h2 className="text-[11px] uppercase tracking-[0.22em] text-ash mb-3">
+        <span className="mr-2 not-italic" aria-hidden="true">
+          {icon}
+        </span>
         {title}
       </h2>
-      {children}
-    </div>
-  );
-  return href ? (
-    <Link href={href as any} className="block hover:opacity-90">
-      {inner}
-    </Link>
-  ) : (
-    inner
+      <div className="rounded-xl border border-bone/60 bg-sand/40 px-5 py-4">
+        {children}
+      </div>
+    </section>
   );
 }
 
-function NavLink({ href, children }: { href: string; children: string }) {
+function BibleRow({
+  label,
+  value,
+  warn = false,
+}: {
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
+  return (
+    <li className="flex items-baseline gap-3">
+      <span className="font-serif italic text-rust w-20 shrink-0">{label}</span>
+      <span>
+        {value}
+        {warn && (
+          <span className="ml-2 text-xs text-rust">finishing soon</span>
+        )}
+      </span>
+    </li>
+  );
+}
+
+function NavLink({
+  href,
+  emphasis = false,
+  children,
+}: {
+  href: string;
+  emphasis?: boolean;
+  children: string;
+}) {
   return (
     <Link
       href={href as any}
-      className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-300 hover:border-zinc-600"
+      className={`rounded-lg border px-3 py-2.5 text-center transition ${
+        emphasis
+          ? "border-plum bg-plum text-cream hover:bg-oxblood"
+          : "border-bone bg-sand/30 text-ink hover:border-smoke"
+      }`}
     >
       {children}
     </Link>

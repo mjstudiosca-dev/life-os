@@ -15,38 +15,53 @@ export default async function ReadingPage() {
   const goals = (data ?? []) as ReadingGoal[];
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-6">
-      <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-light">Reading</h1>
-        <Link href="/today" className="text-sm text-zinc-400 hover:text-zinc-100">
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-32">
+      <header className="mb-8 flex items-baseline justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-ash mb-1">
+            On the page
+          </p>
+          <h1 className="font-serif text-4xl text-oxblood">Reading</h1>
+        </div>
+        <Link href="/today" className="text-sm text-smoke hover:text-ink">
           ← today
         </Link>
       </header>
 
       {goals.length === 0 ? (
-        <p className="text-sm text-zinc-500">
-          No reading goals. <Link href="/capture" className="underline">Add one →</Link>
+        <p className="text-smoke italic font-serif">
+          No reading goals.{" "}
+          <Link href="/capture" className="underline hover:text-ink">
+            Add one →
+          </Link>
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {goals.map((g) => {
-            const pct = Math.min(100, Math.round((g.current_page / g.total_pages) * 100));
+            const pct = Math.min(
+              100,
+              Math.round((g.current_page / g.total_pages) * 100),
+            );
             return (
               <li
                 key={g.id}
-                className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4"
+                className="rounded-xl border border-bone/60 bg-sand/40 p-5"
               >
-                <div className="flex justify-between items-baseline mb-2">
-                  <p className="text-zinc-100">{g.title}</p>
-                  <p className="text-xs text-zinc-500">
-                    {g.current_page} / {g.total_pages} ({pct}%)
+                <div className="flex items-baseline justify-between mb-3">
+                  <p className="font-serif text-xl text-oxblood">{g.title}</p>
+                  <p className="text-xs text-smoke">
+                    {g.current_page} / {g.total_pages}
+                    <span className="ml-2 text-ash">{pct}%</span>
                   </p>
                 </div>
-                <div className="h-1 rounded bg-zinc-900 overflow-hidden">
-                  <div className="h-full bg-zinc-300" style={{ width: `${pct}%` }} />
+                <div className="h-1 rounded-full bg-bone/60 overflow-hidden">
+                  <div
+                    className="h-full bg-plum transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
-                <p className="text-xs text-zinc-500 mt-2">
-                  Target: {g.target_date} · {g.status}
+                <p className="text-[11px] uppercase tracking-wider text-ash mt-3">
+                  Target {g.target_date} · {g.status}
                 </p>
               </li>
             );

@@ -20,29 +20,37 @@ export default async function HistoryPage() {
   }>;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-6">
-      <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-light">History</h1>
-        <Link href="/today" className="text-sm text-zinc-400 hover:text-zinc-100">
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-32">
+      <header className="mb-8 flex items-baseline justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-ash mb-1">
+            Recent briefs
+          </p>
+          <h1 className="font-serif text-4xl text-oxblood">History</h1>
+        </div>
+        <Link href="/today" className="text-sm text-smoke hover:text-ink">
           ← today
         </Link>
       </header>
 
       {briefs.length === 0 ? (
-        <p className="text-sm text-zinc-500">
-          No briefs archived yet. The morning cron will start populating this once it runs.
+        <p className="text-smoke italic font-serif">
+          No briefs archived yet. The morning cron starts populating this once
+          it runs.
         </p>
       ) : (
         <ul className="space-y-2">
           {briefs.map((b) => (
             <li
               key={b.id}
-              className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4 flex justify-between"
+              className="rounded-xl border border-bone/60 bg-sand/40 px-4 py-3 flex items-baseline justify-between"
             >
-              <span className="text-zinc-100">{b.date}</span>
-              <span className="text-xs text-zinc-500">
+              <span className="font-serif text-lg text-oxblood">{b.date}</span>
+              <span className="text-[11px] uppercase tracking-wider text-ash">
                 {b.delivered_via ?? "—"}
-                {b.read_at && <span className="ml-2 text-emerald-400">read</span>}
+                {b.read_at && (
+                  <span className="ml-2 text-sage">read</span>
+                )}
               </span>
             </li>
           ))}

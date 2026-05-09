@@ -29,60 +29,60 @@ export function IdeaActions({ ideaId }: { ideaId: number }) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100"
+          className="rounded border border-bone bg-cream px-2 py-1 text-ink"
         />
         <button
           onClick={() => run(() => ideaSchedule(ideaId, date))}
           disabled={pending || !date}
-          className="rounded bg-zinc-100 text-zinc-900 px-2 py-1 hover:bg-white disabled:opacity-50"
+          className="rounded bg-plum text-cream px-2 py-1 hover:bg-oxblood disabled:opacity-50"
         >
           set
         </button>
         <button
           onClick={() => setScheduleOpen(false)}
-          className="text-zinc-500 hover:text-zinc-300"
+          className="text-smoke hover:text-ink"
         >
           cancel
         </button>
-        {msg && <span className="text-zinc-400">{msg}</span>}
+        {msg && <span className="text-smoke">{msg}</span>}
       </div>
     );
   }
 
   return (
-    <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
       <button
         onClick={() => run(() => ideaActToday(ideaId))}
         disabled={pending}
-        className="hover:text-emerald-400 disabled:opacity-50"
+        className="text-sage hover:text-ink hover:underline disabled:opacity-50 transition"
       >
         Act today
       </button>
-      <span className="text-zinc-700">·</span>
+      <span className="text-bone">·</span>
       <button
         onClick={() => setScheduleOpen(true)}
         disabled={pending}
-        className="hover:text-blue-400 disabled:opacity-50"
+        className="text-plum hover:text-ink hover:underline disabled:opacity-50 transition"
       >
         Schedule
       </button>
-      <span className="text-zinc-700">·</span>
+      <span className="text-bone">·</span>
       <button
         onClick={() => run(() => ideaPushNextWeek(ideaId))}
         disabled={pending}
-        className="hover:text-amber-400 disabled:opacity-50"
+        className="text-rust hover:text-ink hover:underline disabled:opacity-50 transition"
       >
         Push to next week
       </button>
-      <span className="text-zinc-700">·</span>
+      <span className="text-bone">·</span>
       <button
         onClick={() => run(() => ideaKeepQuiet(ideaId))}
         disabled={pending}
-        className="hover:text-zinc-300 disabled:opacity-50"
+        className="text-ash hover:text-ink hover:underline disabled:opacity-50 transition"
       >
         Keep quiet
       </button>
-      {msg && <span className="ml-2 text-zinc-400">{msg}</span>}
+      {msg && <span className="ml-2 text-smoke">{msg}</span>}
     </div>
   );
 }

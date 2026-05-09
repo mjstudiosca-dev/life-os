@@ -8,54 +8,76 @@ export default async function IdeasPage() {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("ideas")
-    .select("id, title, body, status, due_date, last_surfaced_at, surface_count, is_time_anchored, source")
+    .select(
+      "id, title, body, status, due_date, last_surfaced_at, surface_count, is_time_anchored, source",
+    )
     .neq("status", "archived_to_gtasks")
     .order("created_at", { ascending: false });
 
   const ideas = (data ?? []) as Pick<
     Idea,
-    "id" | "title" | "body" | "status" | "due_date" | "last_surfaced_at" | "surface_count" | "is_time_anchored" | "source"
+    | "id"
+    | "title"
+    | "body"
+    | "status"
+    | "due_date"
+    | "last_surfaced_at"
+    | "surface_count"
+    | "is_time_anchored"
+    | "source"
   >[];
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-6">
-      <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-light">Idea Brain</h1>
-        <Link href="/today" className="text-sm text-zinc-400 hover:text-zinc-100">
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-32">
+      <header className="mb-8 flex items-baseline justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-ash mb-1">
+            Brain
+          </p>
+          <h1 className="font-serif text-4xl text-oxblood">Ideas</h1>
+        </div>
+        <Link href="/today" className="text-sm text-smoke hover:text-ink">
           ← today
         </Link>
       </header>
 
       {error && (
-        <p className="text-sm text-red-400 mb-4">Error: {error.message}</p>
+        <p className="text-sm text-rust mb-4">Error: {error.message}</p>
       )}
 
       <ul className="space-y-3">
         {ideas.map((idea) => (
           <li
             key={idea.id}
-            className="rounded-xl border border-zinc-900 bg-zinc-950/40 p-4"
+            className="rounded-xl border border-bone/60 bg-sand/40 p-4"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-zinc-100">{idea.title}</p>
-                {idea.body && (
-                  <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{idea.body}</p>
-                )}
-                <div className="mt-2 flex gap-3 text-xs text-zinc-600">
-                  <span>{idea.status}</span>
-                  {idea.is_time_anchored && <span className="text-amber-500">time-anchored</span>}
-                  {idea.due_date && <span>due {idea.due_date}</span>}
-                  <span>surfaced {idea.surface_count}×</span>
-                </div>
-              </div>
+            <p className="text-ink">{idea.title}</p>
+            {idea.body && (
+              <p className="mt-1.5 text-sm text-smoke font-serif italic line-clamp-2">
+                {idea.body}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] uppercase tracking-wider text-ash">
+              <span>{idea.status}</span>
+              {idea.is_time_anchored && (
+                <span className="text-rust">time-anchored</span>
+              )}
+              {idea.due_date && (
+                <span className="text-rust">due {idea.due_date}</span>
+              )}
+              <span>surfaced {idea.surface_count}×</span>
             </div>
           </li>
         ))}
       </ul>
 
       {ideas.length === 0 && !error && (
-        <p className="text-sm text-zinc-500">No ideas yet. <Link href="/capture" className="underline">Capture one →</Link></p>
+        <p className="text-smoke italic font-serif">
+          No ideas yet.{" "}
+          <Link href="/capture" className="underline hover:text-ink">
+            Capture one →
+          </Link>
+        </p>
       )}
     </main>
   );
