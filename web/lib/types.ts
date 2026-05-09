@@ -114,10 +114,28 @@ export type IdeaWithCategories = Idea & {
   categories: string[];
 };
 
+export type CalendarEventLite = {
+  id: string;
+  title: string;
+  startTime: string | null;    // formatted "9:00am" or null for all-day
+  endTime: string | null;
+  allDay: boolean;
+  durationMinutes: number;
+  tier: 1 | 2 | 3;
+  location: string | null;
+};
+
 // What `lib/brief.ts` produces for the Today page.
 export type TodayBrief = {
   date: string;          // ISO YYYY-MM-DD
   day_of_week: string;   // 'Wednesday'
+  calendar: {
+    tier1: CalendarEventLite[];
+    tier2: CalendarEventLite[];
+    tier3: CalendarEventLite[];
+    available: boolean;          // false if Calendar fetch failed
+  };
+  hours_open: number;            // 16 minus tier1+tier2 duration in hours
   bible: {
     proverbs: string;
     psalms: string;

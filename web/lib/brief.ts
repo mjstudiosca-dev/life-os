@@ -4,8 +4,10 @@
 
 import { createServiceClient } from "./supabase/server";
 import { proverbsReading, psalmsReading, chaptersRemaining } from "./bible";
+import { listEventsForDay, formatTime, type CalEvent } from "./gcalendar";
 import type {
   BibleTrack,
+  CalendarEventLite,
   CalorieEntry,
   IdeaWithCategories,
   PracticeGoal,
@@ -45,7 +47,7 @@ export async function composeBrief(): Promise<TodayBrief> {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  // Parallel-fetch the static-ish data sources.
+  // Parallel-fetch the static-ish data sources + calendar.
   const [
     bibleTracksRes,
     routineRes,
@@ -55,6 +57,7 @@ export async function composeBrief(): Promise<TodayBrief> {
     tasksRes,
     workoutsRes,
     caloriesRes,
+    calendarResult,
   ] = await Promise.all([
     supabase.from("bible_tracks").select("*"),
     supabase.from("routine_settings").select("*").eq("id", 1).single(),
@@ -64,6 +67,10 @@ export async function composeBrief(): Promise<TodayBrief> {
     supabase.from("tasks").select("*").eq("status", "active").order("due_date", { ascending: true, nullsFirst: false }),
     supabase.from("workouts").select("*").gte("date", isoDate(new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000))).order("date", { ascending: false }),
     supabase.from("calorie_log").select("*").gte("date", isoDate(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000))),
+    listEventsForDay(today).catch((err) => {
+      console.error("calendar fetch failed:", err?.message ?? err);
+      return null;
+    }),
   ]);
 
   const tracks = (bibleTracksRes.data ?? []) as BibleTrack[];
@@ -171,9 +178,39 @@ export async function composeBrief(): Promise<TodayBrief> {
     Math.max(IDEA_HARD_CAP - ideas_time_anchored.length, 0),
   );
 
+  // Calendar — bucket by tier.
+  const calEvents = (calendarResult ?? []) as CalEvent[];
+  const calAvailable = calendarResult !== null;
+  const toLite = (e: CalEvent): CalendarEventLite => ({
+    id: e.id,
+    title: e.title,
+    startTime: e.allDay ? null : formatTime(e.start),
+    endTime: e.allDay ? null : formatTime(e.end),
+    allDay: e.allDay,
+    durationMinutes: e.durationMinutes,
+    tier: e.tier,
+    location: e.location,
+  });
+  const calendar = {
+    tier1: calEvents.filter((e) => e.tier === 1).map(toLite),
+    tier2: calEvents.filter((e) => e.tier === 2).map(toLite),
+    tier3: calEvents.filter((e) => e.tier === 3).map(toLite),
+    available: calAvailable,
+  };
+
+  // Hours open = 16 (waking) minus all Tier 1 + Tier 2 calendar duration.
+  const tieredMinutes = [...calendar.tier1, ...calendar.tier2].reduce(
+    (sum, e) => sum + e.durationMinutes,
+    0,
+  );
+  const hoursOpenRaw = 16 - tieredMinutes / 60;
+  const hours_open = Math.max(0, Math.round(hoursOpenRaw * 2) / 2);
+
   return {
     date: today,
     day_of_week: dayOfWeekName(now),
+    calendar,
+    hours_open,
     bible,
     prayer: { ongoing, date_anchored: dateAnchored },
     practice_goals: practice,

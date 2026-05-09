@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { composeBrief } from "@/lib/brief";
+import type { CalendarEventLite } from "@/lib/types";
 import { IdeaActions } from "@/components/IdeaActions";
 import { TaskCheckbox } from "@/components/TaskCheckbox";
 import { EnableNotifications } from "@/components/EnableNotifications";
@@ -28,6 +29,41 @@ export default async function TodayPage() {
           Good morning.
         </p>
       </header>
+
+      {/* CALENDAR */}
+      {brief.calendar.available ? (
+        (brief.calendar.tier1.length > 0 ||
+          brief.calendar.tier2.length > 0 ||
+          brief.calendar.tier3.length > 0) && (
+          <Section icon="🗓" title="Today">
+            {brief.calendar.tier1.length > 0 && (
+              <CalGroup
+                label="Locked in"
+                accent="text-oxblood"
+                events={brief.calendar.tier1}
+              />
+            )}
+            {brief.calendar.tier2.length > 0 && (
+              <CalGroup
+                label="Plan today"
+                accent="text-plum"
+                events={brief.calendar.tier2}
+              />
+            )}
+            {brief.calendar.tier3.length > 0 && (
+              <CalGroup
+                label="Optional"
+                accent="text-mustard"
+                events={brief.calendar.tier3}
+              />
+            )}
+          </Section>
+        )
+      ) : (
+        <p className="text-xs text-rust mb-6">
+          Calendar unavailable — check Google auth.
+        </p>
+      )}
 
       {/* TASKS */}
       {brief.tasks.length > 0 && (
@@ -203,6 +239,10 @@ export default async function TodayPage() {
         </ul>
       </Section>
 
+      <p className="mt-10 text-center font-serif italic text-smoke">
+        ~{brief.hours_open} hours open today. No pressure.
+      </p>
+
       <EnableNotifications />
 
       <nav className="mt-12 grid grid-cols-3 gap-2 text-sm">
@@ -262,6 +302,44 @@ function BibleRow({
         )}
       </span>
     </li>
+  );
+}
+
+function CalGroup({
+  label,
+  accent,
+  events,
+}: {
+  label: string;
+  accent: string;
+  events: CalendarEventLite[];
+}) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <p
+        className={`font-serif italic text-sm ${accent} mb-1.5`}
+      >
+        {label}
+      </p>
+      <ul className="space-y-1.5">
+        {events.map((e) => (
+          <li key={e.id} className="flex items-baseline gap-3 text-ink">
+            <span className="font-mono text-xs text-smoke shrink-0 w-20">
+              {e.allDay ? "all day" : e.startTime}
+            </span>
+            <span className="flex-1 min-w-0">
+              {e.title}
+              {e.location && (
+                <span className="text-smoke text-xs">
+                  {" "}
+                  · {e.location}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
