@@ -5,6 +5,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import webpush from "web-push";
 import { composeBrief } from "@/lib/brief";
+import { composeNotification } from "@/lib/notification";
 import { createServiceClient } from "@/lib/supabase/server";
 import { listAllTasks } from "@/lib/gtasks";
 
@@ -31,8 +32,11 @@ function summary(brief: Awaited<ReturnType<typeof composeBrief>>): string {
   const t1 = brief.tasks.length;
   const i =
     brief.ideas_time_anchored.length + brief.ideas_rotating.length;
-  const p = brief.prayer.ongoing.length + brief.prayer.date_anchored.length;
-  return `${t1} task${t1 === 1 ? "" : "s"} · ${i} idea${i === 1 ? "" : "s"} · ${p} praying for`;
+  const c =
+    brief.calendar.tier1.length +
+    brief.calendar.tier2.length +
+    brief.calendar.tier3.length;
+  return `${c} event${c === 1 ? "" : "s"} · ${t1} task${t1 === 1 ? "" : "s"} · ${i} idea${i === 1 ? "" : "s"}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -90,6 +94,20 @@ export async function GET(req: NextRequest) {
     .select()
     .single();
 
+  // Rotate the prayer roster — mark today's surfaced names as last_surfaced
+  // so they cycle out for tomorrow.
+  const surfacedPrayerNames = brief.prayer.ongoing.map((p) => p.name);
+  if (surfacedPrayerNames.length > 0) {
+    await supabase
+      .from("prayer_roster")
+      .update({ last_surfaced: new Date().toISOString() })
+      .in("name", surfacedPrayerNames)
+      .eq("type", "ongoing");
+  }
+
+  // Compose the AI-written notification body (verse + plan, assistant tone).
+  const copy = await composeNotification(brief);
+
   // Send push to all subscribed devices.
   const pushReady = configurePush();
   let pushed = 0;
@@ -97,8 +115,8 @@ export async function GET(req: NextRequest) {
   if (pushReady) {
     const { data: subs } = await supabase.from("push_subscriptions").select("*");
     const payload = JSON.stringify({
-      title: `Morning brief — ${brief.day_of_week}`,
-      body: summary(brief),
+      title: copy.title,
+      body: copy.body,
       url: "/today",
     });
     for (const sub of subs ?? []) {
@@ -135,5 +153,7 @@ export async function GET(req: NextRequest) {
     push_failed: pushFailed,
     push_configured: pushReady,
     summary: summary(brief),
+    rotated_prayer: surfacedPrayerNames,
+    notification_preview: copy.body,
   });
 }

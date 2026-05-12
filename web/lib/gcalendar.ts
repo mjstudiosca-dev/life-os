@@ -1,6 +1,7 @@
 // Google Calendar API client. Read-only — only used to fetch today's
 // events for the brief. Reads OAuth credentials from process.env.
 
+import { unstable_cache } from "next/cache";
 import { google } from "googleapis";
 
 function buildAuth() {
@@ -48,7 +49,7 @@ function inferTier(title: string, description: string | null): 1 | 2 | 3 {
   return 2; // default
 }
 
-export async function listEventsForDay(date: string): Promise<CalEvent[]> {
+async function fetchEventsForDayUncached(date: string): Promise<CalEvent[]> {
   const auth = buildAuth();
   const calendar = google.calendar({ version: "v3", auth });
 
@@ -100,6 +101,16 @@ export async function listEventsForDay(date: string): Promise<CalEvent[]> {
     };
   });
 }
+
+// Cached wrapper — calendar fetches dedupe within a 5-minute window.
+// Big speedup for /today: skips a ~500ms+ round trip on most page loads.
+// The morning cron invalidates implicitly because the key changes each
+// day (per `date` arg).
+export const listEventsForDay = unstable_cache(
+  fetchEventsForDayUncached,
+  ["calendar-events-for-day"],
+  { revalidate: 300, tags: ["calendar"] },
+);
 
 // Format a Date or ISO string as a local time like "9:00am" / "12:30pm".
 export function formatTime(iso: string | null): string {
