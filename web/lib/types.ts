@@ -70,6 +70,7 @@ export type ReadingGoal = {
   title: string;
   total_pages: number;
   current_page: number;
+  start_date: string | null;          // nullable; if null treat as started today
   target_date: string;
   status: "active" | "completed" | "paused";
   created_at: string;
@@ -149,10 +150,12 @@ export type TodayBrief = {
   practice_goals: PracticeGoal[];
   reading_goals: Array<
     ReadingGoal & {
-      pages_today: number;
-      today_start: number;
-      today_end: number;
-      days_remaining: number;
+      pages_today: number;        // 0 if not started yet
+      today_start: number;        // first page to read today; 0 if not started
+      today_end: number;          // last page to read today; 0 if not started
+      days_remaining: number;     // days between effective_today and target_date
+      not_started: boolean;       // true while today < start_date
+      days_until_start: number;   // 0 once started
     }
   >;
   tasks: Task[];

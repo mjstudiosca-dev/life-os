@@ -61,6 +61,9 @@ export default async function ReadingPage() {
                   />
                 </div>
                 <p className="text-[11px] uppercase tracking-wider text-ash mt-3">
+                  {g.start_date && (
+                    <span>Start {g.start_date} · </span>
+                  )}
                   Target {g.target_date} · {g.status}
                 </p>
               </li>

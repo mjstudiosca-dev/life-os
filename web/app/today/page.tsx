@@ -130,11 +130,20 @@ export default async function TodayPage() {
                 Reading
               </span>
               <span>
-                {g.title}: pp. {g.today_start}–{g.today_end}
-                <span className="text-smoke">
-                  {" "}
-                  ({g.days_remaining}d left)
-                </span>
+                {g.title}:{" "}
+                {g.not_started ? (
+                  <span className="text-smoke">
+                    starts in {g.days_until_start}d ({g.start_date})
+                  </span>
+                ) : (
+                  <>
+                    pp. {g.today_start}–{g.today_end}
+                    <span className="text-smoke">
+                      {" "}
+                      ({g.days_remaining}d left)
+                    </span>
+                  </>
+                )}
               </span>
             </li>
           ))}

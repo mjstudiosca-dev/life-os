@@ -117,17 +117,29 @@ export async function composeBrief(): Promise<TodayBrief> {
     .slice(0, ONGOING_PRAYER_COUNT)
     .map((p) => ({ name: p.name, situation: p.situation }));
 
-  // Reading-goal page math.
+  // Reading-goal page math. Handles future start_date — don't compute
+  // pages_today until the start date arrives.
   const reading_goals = reading.map((g) => {
-    const days_remaining = Math.max(daysBetween(today, g.target_date), 1);
+    const startDate = g.start_date ?? today;            // null = started today
+    const effectiveToday = today < startDate ? startDate : today;
+    const not_started = today < startDate;
+    const days_until_start = not_started ? daysBetween(today, startDate) : 0;
+    const days_remaining = Math.max(
+      daysBetween(effectiveToday, g.target_date) + 1, // inclusive of today
+      1,
+    );
     const pages_remaining = Math.max(g.total_pages - g.current_page, 0);
-    const pages_today = Math.ceil(pages_remaining / days_remaining);
+    const pages_today = not_started
+      ? 0
+      : Math.ceil(pages_remaining / days_remaining);
     return {
       ...g,
       pages_today,
-      today_start: g.current_page + 1,
-      today_end: g.current_page + pages_today,
+      today_start: not_started ? 0 : g.current_page + 1,
+      today_end: not_started ? 0 : g.current_page + pages_today,
       days_remaining,
+      not_started,
+      days_until_start,
     };
   });
 
